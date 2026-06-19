@@ -575,10 +575,10 @@ export default function App() {
           <p>{overview.holdingCount} open positions, {overview.soldCount} closed trades, total return {num(overview.profitPercent)}%</p>
         </div>
         <div className="hero-actions">
-          {user.isAdmin ? <button className="ghost" onClick={() => setModal("batches")}><ServerCog size={17} /> Batch Operations</button> : null}
+          {/* {user.isAdmin ? <button className="ghost" onClick={() => setModal("batches")}><ServerCog size={17} /> Batch Operations</button> : null} */}
           <button className="ghost" onClick={openSipCalculator}><Calculator size={17} /> SIP Calculator</button>
           <button className="ghost" onClick={() => openFeature("analytics")}><LineChart size={17} /> Analytics</button>
-          <button className="ghost" onClick={() => openMarketPage(insiderTradesPath, "insiders")}>Insider trades</button>
+          {/* <button className="ghost" onClick={() => openMarketPage(insiderTradesPath, "insiders")}>Insider trades</button> */}
           <button className="ghost" onClick={() => openFeature("ledger")}>Transactions</button>
           <button onClick={openAddInvestmentModal}><Plus size={17} /> Add investment</button>
         </div>
