@@ -256,6 +256,84 @@ button.kpi:hover {
 .kpi.good strong, .gain { color: var(--gain); }
 .kpi.bad strong, .loss { color: var(--loss); }
 
+.fiscal-kpi {
+  overflow: hidden;
+  position: relative;
+  align-content: space-between;
+  background:
+    radial-gradient(circle at 100% 0, rgba(37, 99, 235, 0.12), transparent 44%),
+    linear-gradient(145deg, #ffffff, #f3f8ff) !important;
+}
+
+.fiscal-kpi::after {
+  position: absolute;
+  right: -24px;
+  bottom: -36px;
+  width: 100px;
+  height: 100px;
+  border: 18px solid rgba(15, 118, 110, 0.055);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.fiscal-kpi-head {
+  display: flex;
+  z-index: 1;
+  align-items: center;
+  width: 100%;
+  gap: 7px;
+}
+
+.fiscal-kpi-head > span {
+  margin-right: auto;
+}
+
+.fiscal-kpi-head > small {
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--blue);
+  font-size: 0.66rem;
+  font-weight: 950;
+  padding: 4px 7px;
+  white-space: nowrap;
+}
+
+.fiscal-kpi-values {
+  display: grid;
+  z-index: 1;
+  grid-template-columns: minmax(0, 1.35fr) minmax(72px, 0.65fr);
+  width: 100%;
+  gap: 8px;
+}
+
+.fiscal-kpi-values > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.fiscal-kpi-values > div + div {
+  border-left: 1px solid var(--line);
+  padding-left: 9px;
+}
+
+.fiscal-kpi-values small {
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fiscal-kpi-values strong {
+  overflow: hidden;
+  font-size: clamp(1rem, 1.45vw, 1.5rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
@@ -401,6 +479,106 @@ button.kpi:hover {
 .milestone-metrics b {
   overflow: hidden;
   font-size: 0.92rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.total-performance-card {
+  overflow: hidden;
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  gap: 13px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(15, 118, 110, 0.16), transparent 46%),
+    linear-gradient(145deg, #ffffff 10%, #eef9f5 100%);
+}
+
+.total-performance-card.negative {
+  background:
+    radial-gradient(circle at 100% 0, rgba(220, 38, 38, 0.12), transparent 46%),
+    linear-gradient(145deg, #ffffff 10%, #fff5f5 100%);
+}
+
+.performance-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.performance-card-head > span {
+  color: var(--brand-dark);
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.performance-card-head i {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--gain);
+}
+
+.negative .performance-card-head i {
+  background: rgba(220, 38, 38, 0.09);
+  color: var(--loss);
+}
+
+.performance-profit {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.performance-profit > small,
+.performance-return small {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.performance-profit > strong {
+  overflow: hidden;
+  font-size: clamp(1.7rem, 2.6vw, 2.8rem);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.performance-profit p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.performance-return {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.performance-return > span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 9px 10px;
+}
+
+.performance-return b {
+  overflow: hidden;
+  font-size: 0.96rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2029,6 +2207,7 @@ button.kpi:hover {
   .score-rows > div { grid-template-columns: 1fr; }
   .score-rows strong { text-align: left; }
   .milestone-metrics { grid-template-columns: 1fr; }
+  .total-performance-card { min-height: 230px; }
   .mini-donut-layout { grid-template-columns: 1fr; justify-items: center; }
   .mini-legend { width: 100%; }
   .hero-actions { justify-content: stretch; }
@@ -2093,6 +2272,10 @@ button.kpi:hover {
   .modal-head { align-items: stretch; }
   .modal-head h2 { font-size: 1.08rem; }
   .holding { grid-template-columns: 1fr; }
+  .fiscal-kpi-values,
+  .performance-return { grid-template-columns: 1fr; }
+  .fiscal-kpi-values > div + div { border-top: 1px solid var(--line); border-left: 0; padding-top: 7px; padding-left: 0; }
+  .performance-profit > strong { font-size: clamp(1.55rem, 9vw, 2.2rem); }
   .holding > div { grid-column: 1 / -1; }
   .status-tabs { grid-template-columns: 1fr; }
   .search-actions { align-items: stretch; flex-direction: column; }

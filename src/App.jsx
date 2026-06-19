@@ -588,7 +588,7 @@ export default function App() {
         <Kpi icon={WalletCards} label="Current value" value={money(overview.currentValue)} detail={`${overview.holdingCount} open holdings`} onOpen={() => setModal("portfolio")} />
         <Kpi icon={Coins} label="Still invested" value={money(overview.investedValue)} detail="Cost left in open holdings" onOpen={() => openFeature("investments")} />
         <Kpi icon={overview.totalProfit >= 0 ? TrendingUp : TrendingDown} label="Total profit/loss" value={money(overview.totalProfit)} detail="Actual profit after charges" tone={overview.totalProfit >= 0 ? "good" : "bad"} onOpen={() => openFeature("profit")} />
-        <Kpi icon={LineChart} label="Total return" value={`${num(overview.profitPercent)}%`} detail="Total profit/loss as %" />
+        <FiscalYearKpi overview={overview} />
       </section>
 
       <DashboardOverview overview={overview} onHealthDetails={() => setShowHealthBreakdown(true)} />
@@ -747,10 +747,27 @@ function Kpi({ icon: Icon, label, value, detail, tone = "", onOpen }) {
   );
 }
 
+function FiscalYearKpi({ overview }) {
+  const tone = overview.thisFyProfit >= 0 ? "good" : "bad";
+  const Icon = overview.thisFyProfit >= 0 ? TrendingUp : TrendingDown;
+  return (
+    <div className={`kpi static-kpi fiscal-kpi ${tone}`}>
+      <div className="fiscal-kpi-head">
+        <Icon size={20} />
+        <span>This FY</span>
+        <small>{fiscalYearLabel(overview.fiscalYearStart)}</small>
+      </div>
+      <div className="fiscal-kpi-values">
+        <div><small>Profit</small><strong>{money(overview.thisFyProfit)}</strong></div>
+        <div><small>Return</small><strong>{formatPercent(overview.thisFyReturn)}</strong></div>
+      </div>
+    </div>
+  );
+}
+
 function DashboardOverview({ overview, onHealthDetails }) {
   const healthScore = portfolioHealthScore(overview);
   const profitTone = overview.totalProfit >= 0 ? "gain" : "loss";
-  const milestone = returnMilestone(overview);
 
   return (
     <section className="dashboard-grid" aria-label="Portfolio dashboard">
@@ -770,22 +787,31 @@ function DashboardOverview({ overview, onHealthDetails }) {
         </button>
       </article>
 
-      <article className="dashboard-card">
-        <div className="dashboard-card-head">
-          <span>{milestone.eyebrow}</span>
-          <strong>{milestone.title}</strong>
-        </div>
-        <p className="milestone-copy">{milestone.detail}</p>
-        <div className="target-progress" aria-label={milestone.title}>
-          <i><b style={{ width: `${milestone.progress}%` }} /></i>
-          <small>{milestone.progressLabel}</small>
-        </div>
-        <div className="milestone-metrics">
-          <span><small>{milestone.primaryLabel}</small><b className={milestone.tone}>{milestone.primaryValue}</b></span>
-          <span><small>{milestone.secondaryLabel}</small><b>{milestone.secondaryValue}</b></span>
-        </div>
-      </article>
+      <TotalPerformanceCard overview={overview} />
     </section>
+  );
+}
+
+function TotalPerformanceCard({ overview }) {
+  const positive = overview.totalProfit >= 0;
+  const Icon = positive ? TrendingUp : TrendingDown;
+  const tone = positive ? "gain" : "loss";
+  return (
+    <article className={`dashboard-card total-performance-card ${positive ? "positive" : "negative"}`}>
+      <div className="performance-card-head">
+        <span>All-time performance</span>
+        <i><Icon size={18} /></i>
+      </div>
+      <div className="performance-profit">
+        <small>Total profit</small>
+        <strong className={tone}>{money(overview.totalProfit)}</strong>
+        <p>Net result after brokerage, charges, dividends, and closed trades.</p>
+      </div>
+      <div className="performance-return">
+        <span><small>Total return</small><b className={tone}>{formatPercent(overview.profitPercent)}</b></span>
+        <span><small>Realized</small><b className={overview.realizedProfit >= 0 ? "gain" : "loss"}>{money(overview.realizedProfit)}</b></span>
+      </div>
+    </article>
   );
 }
 
@@ -1304,56 +1330,10 @@ function formatPercent(value) {
   return value == null || !Number.isFinite(Number(value)) ? "N/A" : `${num(value)}%`;
 }
 
-function returnMilestone(overview) {
-  const invested = Number(overview.investedValue || 0);
-  const profit = Number(overview.totalProfit || 0);
-  const returnPercent = Number(overview.profitPercent || 0);
-  if (invested <= 0) {
-    return {
-      eyebrow: "Next milestone",
-      title: "Add an open investment",
-      detail: "Once money is invested, this card will show the next return target and amount needed.",
-      progress: 0,
-      progressLabel: "No active capital yet",
-      primaryLabel: "Current return",
-      primaryValue: `${num(returnPercent)}%`,
-      secondaryLabel: "Still invested",
-      secondaryValue: money(invested),
-      tone: "",
-    };
-  }
-  if (profit < 0) {
-    const gap = Math.abs(profit);
-    const progress = Math.max(0, Math.min(100, ((invested + profit) / invested) * 100));
-    return {
-      eyebrow: "Break-even gap",
-      title: money(gap),
-      detail: "Profit needed to bring the portfolio back to zero after charges.",
-      progress,
-      progressLabel: `${num(progress)}% of capital protected`,
-      primaryLabel: "Current return",
-      primaryValue: `${num(returnPercent)}%`,
-      secondaryLabel: "Break-even",
-      secondaryValue: money(0),
-      tone: "loss",
-    };
-  }
-  const targetReturn = Math.max(5, Math.ceil((returnPercent + 0.01) / 5) * 5);
-  const targetProfit = invested * (targetReturn / 100);
-  const needed = Math.max(0, targetProfit - profit);
-  const progress = targetProfit ? Math.max(0, Math.min(100, (profit / targetProfit) * 100)) : 100;
-  return {
-    eyebrow: "Next milestone",
-    title: `${num(targetReturn)}% return`,
-    detail: `${money(needed)} more profit needed to reach the next clean return level.`,
-    progress,
-    progressLabel: `${num(progress)}% of target reached`,
-    primaryLabel: "Needed",
-    primaryValue: money(needed),
-    secondaryLabel: "Target profit",
-    secondaryValue: money(targetProfit),
-    tone: "gain",
-  };
+function fiscalYearLabel(startDate) {
+  const startYear = Number(String(startDate || "").slice(0, 4));
+  if (!startYear) return "Current year";
+  return `${startYear}-${String(startYear + 1).slice(-2)}`;
 }
 
 function sortHoldings(rows, sortKey) {
@@ -1484,6 +1464,9 @@ function emptyOverview() {
     realizedProfit: 0,
     totalProfit: 0,
     profitPercent: 0,
+    thisFyProfit: 0,
+    thisFyReturn: 0,
+    fiscalYearStart: "",
     holdingCount: 0,
     soldCount: 0,
   };
