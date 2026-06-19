@@ -16,6 +16,18 @@ export function runAdminBatch(batchId) {
   return authorizedRequest(`/api/admin/batches/${encodeURIComponent(batchId)}/run`, { method: "POST", timeoutMs: 5 * 60 * 1000 });
 }
 
+export function getInsiderBackfillStatus() {
+  return authorizedRequest("/api/finance/insider-trades/backfill/status");
+}
+
+export function startInsiderBackfill(fromYear, toYear) {
+  return authorizedRequest("/api/finance/insider-trades/backfill", { method: "POST", body: JSON.stringify({ fromYear, toYear }) });
+}
+
+export function terminateInsiderBackfill() {
+  return authorizedRequest("/api/finance/insider-trades/backfill", { method: "DELETE" });
+}
+
 export function getAnalyticsFeature({ period = "1y", startDate = "", endDate = "" } = {}) {
   const params = new URLSearchParams({ period });
   if (startDate && endDate) {

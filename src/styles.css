@@ -1309,6 +1309,17 @@ button.kpi:hover {
 .finance-batch-list small { display: block; margin-top: 2px; color: var(--muted); font-size: 0.7rem; }
 .finance-batch-list .batch-warning { color: #9a5b13; }
 .finance-batch-list article > button { min-width: 104px; }
+.finance-backfill { display: grid; gap: 7px; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 10px; }
+.finance-backfill > p { margin: 0; color: var(--muted); }
+.finance-backfill > small { color: var(--muted); font-size: 0.7rem; }
+.backfill-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 180px)); gap: 8px; }
+.backfill-fields label { display: grid; gap: 4px; color: var(--muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+.backfill-progress { overflow: hidden; height: 7px; border-radius: 99px; background: var(--panel-soft); }
+.backfill-progress i { display: block; height: 100%; border-radius: inherit; background: var(--brand); transition: width 0.25s ease; }
+.backfill-status { border-radius: 99px; background: var(--panel-soft); color: var(--muted); padding: 3px 7px; font-weight: 850; text-transform: capitalize; }
+.backfill-status.status-running, .backfill-status.status-queued { background: #e7f4f0; color: var(--brand-dark); }
+.backfill-status.status-cancelling { background: #fff1df; color: #8a520d; }
+.backfill-status.status-cancelled, .backfill-status.status-failed { background: #fff0ee; color: var(--loss); }
 
 .compact-tabs {
   width: min(360px, 100%);
@@ -2153,10 +2164,12 @@ textarea { min-height: 64px; }
   .finance-batch-head { align-items: stretch; flex-direction: column; }
   .finance-batch-list article { grid-template-columns: 1fr; }
   .finance-batch-list article > button { width: 100%; }
+  .backfill-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 430px) {
   .hero-actions, .kpi-grid { grid-template-columns: 1fr; }
   .insider-table article { grid-template-columns: 1fr; }
   .page-title-metrics span { padding: 6px 8px; }
+  .backfill-fields { grid-template-columns: 1fr; }
 }
