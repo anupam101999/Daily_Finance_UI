@@ -8,6 +8,14 @@ export function syncFinanceQuotes() {
   return authorizedRequest("/api/finance/sync", { method: "POST" });
 }
 
+export function getAdminBatches() {
+  return authorizedRequest("/api/admin/batches");
+}
+
+export function runAdminBatch(batchId) {
+  return authorizedRequest(`/api/admin/batches/${encodeURIComponent(batchId)}/run`, { method: "POST", timeoutMs: 5 * 60 * 1000 });
+}
+
 export function getAnalyticsFeature({ period = "1y", startDate = "", endDate = "" } = {}) {
   const params = new URLSearchParams({ period });
   if (startDate && endDate) {

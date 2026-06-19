@@ -12,6 +12,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  ServerCog,
   Trash2,
   TrendingDown,
   TrendingUp,
@@ -21,6 +22,7 @@ import {
 import { clearAuthSession, loginUser, registerUser, restoreAuthSession } from "./services/apiClient";
 import { AssetForm, DividendForm, SaleForm, TransactionForm } from "./components/FinanceForms";
 import SipCalculator from "./components/SipCalculator";
+import BatchOperations from "./components/BatchOperations";
 import { InsiderTradesPage } from "./components/MarketDetailPages";
 import { ConfirmModal, FormModal, FullViewModal } from "./components/Modals";
 import {
@@ -573,6 +575,7 @@ export default function App() {
           <p>{overview.holdingCount} open positions, {overview.soldCount} closed trades, total return {num(overview.profitPercent)}%</p>
         </div>
         <div className="hero-actions">
+          {user.isAdmin ? <button className="ghost" onClick={() => setModal("batches")}><ServerCog size={17} /> Batch Operations</button> : null}
           <button className="ghost" onClick={openSipCalculator}><Calculator size={17} /> SIP Calculator</button>
           <button className="ghost" onClick={() => openFeature("analytics")}><LineChart size={17} /> Analytics</button>
           <button className="ghost" onClick={() => openMarketPage(insiderTradesPath, "insiders")}>Insider trades</button>
@@ -686,6 +689,12 @@ export default function App() {
           {featureBusy ? <div className="empty">Loading ledger...</div> : (
             <Ledger data={sortedLedgerData} sort={ledgerSort} onSort={changeLedgerSort} page={ledgerPage} onPage={setLedgerPage} onEdit={startEditTransaction} onDelete={setDeletingTransaction} />
           )}
+        </FullViewModal>
+      ) : null}
+
+      {modal === "batches" && user.isAdmin ? (
+        <FullViewModal title="Batch Operations" detail="Run scheduled system jobs manually. This workspace is restricted to administrators." onClose={() => setModal("")}>
+          <BatchOperations />
         </FullViewModal>
       ) : null}
 

@@ -141,10 +141,11 @@ async function parseResponse(response) {
 }
 
 async function fetchWithTimeout(url, options) {
+  const { timeoutMs = requestTimeoutMs, ...fetchOptions } = options;
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...options, signal: options.signal || controller.signal });
+    return await fetch(url, { ...fetchOptions, signal: fetchOptions.signal || controller.signal });
   } catch (error) {
     if (error?.name === "AbortError") throw new ApiError("The request timed out. Please try again.", { code: "REQUEST_TIMEOUT", cause: error });
     throw new ApiError("Unable to reach the server. Check your connection and try again.", { cause: error });
