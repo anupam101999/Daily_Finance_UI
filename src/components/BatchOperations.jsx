@@ -47,7 +47,7 @@ export default function BatchOperations() {
       <div className="finance-batch-list">
         {batches.map((batch) => {
           const isRunning = running === batch.id || batch.running;
-          return <article key={batch.id}><div><strong>{batch.name}</strong><p>{batch.description}</p><small>{batch.schedule} · Scheduler {batch.schedulerEnabled ? "enabled" : "disabled"}</small>{batch.lastCompletedAt ? <small>Last completed {dateTime(batch.lastCompletedAt)}</small> : null}{batch.lastError ? <small className="loss">Last error: {batch.lastError}</small> : null}</div><button type="button" disabled={isRunning || Boolean(running)} onClick={() => run(batch)}>{isRunning ? <RefreshCw className="spin" size={16} /> : <Play size={16} />}{isRunning ? "Running..." : "Run now"}</button></article>;
+          return <article key={batch.id}><div><strong>{batch.name}</strong><p>{batch.description}</p><small>{batch.schedule} · Scheduler {batch.schedulerEnabled ? "enabled" : "disabled"}</small>{batch.lastCompletedAt ? <small>Last completed {dateTime(batch.lastCompletedAt)}</small> : null}{batch.lastWarning ? <small className="batch-warning">Partial source warning: {batch.lastWarning}</small> : null}{batch.lastError ? <small className="loss">Last error: {batch.lastError}</small> : null}</div><button type="button" disabled={isRunning || Boolean(running)} onClick={() => run(batch)}>{isRunning ? <RefreshCw className="spin" size={16} /> : <Play size={16} />}{isRunning ? "Running..." : "Run now"}</button></article>;
         })}
       </div>
     </div>

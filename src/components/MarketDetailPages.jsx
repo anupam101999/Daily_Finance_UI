@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, RefreshCw, Search } from "lucide-react";
+import { ArrowLeft, ExternalLink, RefreshCw, Search } from "lucide-react";
 import { getInsiderTradesFeature } from "../services/financeStore";
 
 export function InsiderTradesPage({ onBack }) {
@@ -36,7 +36,18 @@ export function InsiderTradesPage({ onBack }) {
       <div className="year-tabs">{years.map((item) => <button key={item} className={year === item ? "active" : ""} onClick={() => { setYear(item); setExactDate(""); setPage(1); }}>{item}</button>)}</div>
       <div className="insider-table">
         <div className="insider-header"><span>Company</span><span>Name</span><span>Date</span><span>Type / quantity</span><span>Value / impact</span></div>
-        {(result.rows || []).map((row) => <article key={row.id}><span><strong>{row.disclosureUrl ? <a href={row.disclosureUrl} target="_blank" rel="noreferrer">{row.symbol || row.company}</a> : row.symbol || row.company}</strong><small>{row.company}</small></span><span><strong>{row.person || "Insider"}</strong><small>{row.category}{row.source ? ` · ${row.source}` : ""}</small></span><time>{row.date}</time><span><strong>{row.transactionType || "Disclosure"}</strong><small>{number(row.quantity)} shares · {row.acquisitionMode}</small></span><span className="insider-value"><b className={/buy|acquisition/i.test(row.transactionType) ? "gain" : "loss"}>{compactMoney(row.value)}</b><small title="Transaction shares divided by disclosed outstanding shares">{row.marketCapImpactPercent == null ? "Impact unavailable" : `${impactPercent(row.marketCapImpactPercent)} market-cap impact`}</small>{row.holdingBeforePercent != null && row.holdingAfterPercent != null ? <small>Holding {impactPercent(row.holdingBeforePercent)} → {impactPercent(row.holdingAfterPercent)}</small> : null}</span></article>)}
+        {(result.rows || []).map((row) => (
+          <article key={row.id}>
+            <span>
+              <strong><a className="screener-company-link" href={screenerUrl(row.symbol, row.company)} target="_blank" rel="noreferrer" title={`Open ${row.company || row.symbol} on Screener`}>{row.symbol || row.company}<ExternalLink size={12} /></a></strong>
+              <small>{row.company}</small>
+            </span>
+            <span><strong>{row.person || "Insider"}</strong><small>{row.category}{row.source ? ` · ${row.source}` : ""}</small></span>
+            <time>{row.date}</time>
+            <span><strong>{row.transactionType || "Disclosure"}</strong><small>{number(row.quantity)} shares · {row.acquisitionMode}</small>{row.disclosureUrl ? <small><a href={row.disclosureUrl} target="_blank" rel="noreferrer">Exchange filing <ExternalLink size={10} /></a></small> : null}</span>
+            <span className="insider-value"><b className={/buy|acquisition/i.test(row.transactionType) ? "gain" : "loss"}>{compactMoney(row.value)}</b><small title="Transaction shares divided by disclosed outstanding shares">{row.marketCapImpactPercent == null ? "Impact unavailable" : `${impactPercent(row.marketCapImpactPercent)} market-cap impact`}</small>{row.holdingBeforePercent != null && row.holdingAfterPercent != null ? <small>Holding {impactPercent(row.holdingBeforePercent)} → {impactPercent(row.holdingAfterPercent)}</small> : null}</span>
+          </article>
+        ))}
         {!busy && !(result.rows || []).length ? <div className="empty">No matching insider disclosures were found for {year}.</div> : null}
       </div>
       <div className="detail-pager">
@@ -63,3 +74,4 @@ function number(value) { return Number(value || 0).toLocaleString("en-IN", { max
 function compactMoney(value) { const amount = Number(value || 0); const absolute = Math.abs(amount); if (absolute >= 10_000_000) return `₹${trim(amount / 10_000_000)} Cr`; if (absolute >= 100_000) return `₹${trim(amount / 100_000)} Lakh`; if (absolute >= 1_000) return `₹${trim(amount / 1_000)}K`; return `₹${number(amount)}`; }
 function trim(value) { return Number(value.toFixed(2)).toLocaleString("en-IN", { maximumFractionDigits: 2 }); }
 function impactPercent(value) { const percent = Number(value || 0); return `${percent < 0.01 && percent > 0 ? "<0.01" : percent.toLocaleString("en-IN", { maximumFractionDigits: 2 })}%`; }
+function screenerUrl(symbol, company) { const ticker = String(symbol || "").trim().replace(/^BSE:/i, ""); return ticker ? `https://www.screener.in/company/${encodeURIComponent(ticker)}/` : `https://www.screener.in/company/?q=${encodeURIComponent(company || "")}`; }

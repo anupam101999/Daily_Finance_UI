@@ -1307,6 +1307,7 @@ button.kpi:hover {
 .finance-batch-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-soft); padding: 9px; }
 .finance-batch-list p { margin: 3px 0 5px; color: var(--muted); }
 .finance-batch-list small { display: block; margin-top: 2px; color: var(--muted); font-size: 0.7rem; }
+.finance-batch-list .batch-warning { color: #9a5b13; }
 .finance-batch-list article > button { min-width: 104px; }
 
 .compact-tabs {
@@ -1381,6 +1382,7 @@ button.kpi:hover {
 .insider-table article strong, .insider-table article small { display: block; }
 .insider-table article a { color: var(--brand-dark); text-decoration: none; }
 .insider-table article a:hover { text-decoration: underline; }
+.screener-company-link, .insider-table article small a { display: inline-flex; align-items: center; gap: 4px; }
 .insider-table article small, .insider-table article time { margin-top: 3px; color: var(--muted); font-size: 0.72rem; }
 .insider-value b, .insider-value small { display: block; text-align: right; }
 .insider-value small { white-space: nowrap; }
