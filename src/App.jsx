@@ -20,9 +20,8 @@ import {
 } from "lucide-react";
 import { clearAuthSession, loginUser, registerUser, restoreAuthSession } from "./services/apiClient";
 import { AssetForm, DividendForm, SaleForm, TransactionForm } from "./components/FinanceForms";
-import MarketIntelligence from "./components/MarketIntelligence";
 import SipCalculator from "./components/SipCalculator";
-import { InsiderTradesPage, MarketNewsPage } from "./components/MarketDetailPages";
+import { InsiderTradesPage } from "./components/MarketDetailPages";
 import { ConfirmModal, FormModal, FullViewModal } from "./components/Modals";
 import {
   addDividend,
@@ -33,7 +32,6 @@ import {
   getHeldStockOptions,
   getHoldingsFeature,
   getLedgerFeature,
-  getMarketIntelligenceFeature,
   getProfitFeature,
   sellHolding,
   syncFinanceQuotes,
@@ -58,7 +56,6 @@ const emptyTransaction = { assetId: "", sector: "", transactionDate: today, tran
 const emptyAnalyticsRange = { startDate: "", endDate: "" };
 const exchangeOptions = ["NSE", "BSE", "BOM", "MUTF_IN"];
 const analyticsPath = "/anlytics";
-const marketNewsPath = "/market-news";
 const insiderTradesPath = "/insider-trades";
 const sipCalculatorPath = "/sip-calculator";
 const allocationSortOptions = [
@@ -84,10 +81,6 @@ export default function App() {
   const [holdingsData, setHoldingsData] = useState(null);
   const [profitData, setProfitData] = useState(null);
   const [ledgerData, setLedgerData] = useState({ rows: [], assets: [], page: 1, pageSize: 12, total: 0 });
-  const [marketData, setMarketData] = useState(null);
-  const [marketError, setMarketError] = useState("");
-  const [marketBusy, setMarketBusy] = useState(false);
-  const [marketCountry, setMarketCountry] = useState("IN");
   const [modal, setModal] = useState(routeModal);
   const [message, setMessage] = useState("Restoring session...");
   const [busy, setBusy] = useState(false);
@@ -134,13 +127,6 @@ export default function App() {
   useEffect(() => {
     if (user) loadOverview();
   }, [user]);
-
-  useEffect(() => {
-    if (!user) return undefined;
-    loadMarketIntelligence(false, marketCountry);
-    const timer = window.setInterval(() => loadMarketIntelligence(true, marketCountry), 60 * 60 * 1000);
-    return () => window.clearInterval(timer);
-  }, [user, marketCountry]);
 
   useEffect(() => {
     if (!message || message === "Restoring session...") return undefined;
@@ -266,18 +252,6 @@ export default function App() {
       setMessage(error.message);
     } finally {
       setFeatureBusy(false);
-    }
-  }
-
-  async function loadMarketIntelligence(refresh = false, country = marketCountry) {
-    setMarketBusy(true);
-    try {
-      setMarketData(await getMarketIntelligenceFeature({ refresh, country }));
-      setMarketError("");
-    } catch (error) {
-      setMarketError(error.message);
-    } finally {
-      setMarketBusy(false);
     }
   }
 
@@ -487,8 +461,6 @@ export default function App() {
     setUser(null);
     setOverview(emptyOverview());
     setHoldingsData(null);
-    setMarketData(null);
-    setMarketError("");
   }
 
   if (!user) {
@@ -553,10 +525,6 @@ export default function App() {
     );
   }
 
-  if (modal === "news") {
-    return <MarketNewsPage data={marketData} busy={marketBusy} error={marketError} country={marketCountry} onCountry={setMarketCountry} onRefresh={() => loadMarketIntelligence(true, marketCountry)} onBack={closeMarketPage} />;
-  }
-
   if (modal === "insiders") {
     return <InsiderTradesPage onBack={closeMarketPage} />;
   }
@@ -607,7 +575,6 @@ export default function App() {
         <div className="hero-actions">
           <button className="ghost" onClick={openSipCalculator}><Calculator size={17} /> SIP Calculator</button>
           <button className="ghost" onClick={() => openFeature("analytics")}><LineChart size={17} /> Analytics</button>
-          <button className="ghost" onClick={() => setModal("market")}>Market updates</button>
           <button className="ghost" onClick={() => openMarketPage(insiderTradesPath, "insiders")}>Insider trades</button>
           <button className="ghost" onClick={() => openFeature("ledger")}>Transactions</button>
           <button onClick={openAddInvestmentModal}><Plus size={17} /> Add investment</button>
@@ -719,12 +686,6 @@ export default function App() {
           {featureBusy ? <div className="empty">Loading ledger...</div> : (
             <Ledger data={sortedLedgerData} sort={ledgerSort} onSort={changeLedgerSort} page={ledgerPage} onPage={setLedgerPage} onEdit={startEditTransaction} onDelete={setDeletingTransaction} />
           )}
-        </FullViewModal>
-      ) : null}
-
-      {modal === "market" ? (
-        <FullViewModal title="Market updates" detail="Hourly news, institutional activity, corporate events, earnings, dividends, and disclosures." onClose={() => setModal("")}>
-          <MarketIntelligence data={marketData} busy={marketBusy} error={marketError} country={marketCountry} onCountry={setMarketCountry} onRefresh={() => loadMarketIntelligence(true, marketCountry)} onOpenNews={() => openMarketPage(marketNewsPath, "news")} onOpenInsiders={() => openMarketPage(insiderTradesPath, "insiders")} />
         </FullViewModal>
       ) : null}
 
@@ -1532,7 +1493,6 @@ function currentTransactionAsset(transaction) {
 function routeModal() {
   const path = window.location.pathname.replace(/\/+$/, "");
   if (path === analyticsPath) return "analytics";
-  if (path === marketNewsPath) return "news";
   if (path === insiderTradesPath) return "insiders";
   if (path === sipCalculatorPath) return "sip-calculator";
   return "";

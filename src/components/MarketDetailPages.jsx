@@ -1,32 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, RefreshCw, Search } from "lucide-react";
 import { getInsiderTradesFeature } from "../services/financeStore";
-
-const fallbackCountries = [{ code: "IN", name: "India" }, { code: "US", name: "United States" }, { code: "GB", name: "United Kingdom" }, { code: "CA", name: "Canada" }, { code: "AU", name: "Australia" }, { code: "SG", name: "Singapore" }, { code: "HK", name: "Hong Kong" }, { code: "JP", name: "Japan" }, { code: "DE", name: "Germany" }, { code: "FR", name: "France" }, { code: "AE", name: "United Arab Emirates" }, { code: "ZA", name: "South Africa" }, { code: "BR", name: "Brazil" }, { code: "CH", name: "Switzerland" }];
-
-export function MarketNewsPage({ data, busy, error, country, onCountry, onRefresh, onBack }) {
-  const [scope, setScope] = useState("market");
-  const [search, setSearch] = useState("");
-  const countries = data?.countries?.length ? data.countries : fallbackCountries;
-  const selected = countries.find((item) => item.code === country) || countries[0];
-  const [countryText, setCountryText] = useState(selected.name);
-  const rows = useMemo(() => (data?.news?.[scope] || []).filter((row) => includes(row, search, ["title", "publisher", "trackedSymbol"])), [data, scope, search]);
-  function chooseCountry(value) {
-    setCountryText(value);
-    const match = countries.find((item) => item.name.toLowerCase() === value.trim().toLowerCase() || item.code.toLowerCase() === value.trim().toLowerCase());
-    if (match && match.code !== country) onCountry(match.code);
-  }
-  return (
-    <DetailShell title="Market News" detail={`${selected.name} market coverage from multiple publishers`} busy={busy} error={error} onRefresh={onRefresh} onBack={onBack}>
-      <div className="detail-filter-grid">
-        <label className="form-field"><span>News country</span><input list="news-country-options" value={countryText} onChange={(event) => chooseCountry(event.target.value)} placeholder="Search country" /><datalist id="news-country-options">{countries.map((item) => <option key={item.code} value={item.name}>{item.code}</option>)}</datalist></label>
-        <label className="detail-search"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search news, publisher, or stock" /></label>
-      </div>
-      <div className="status-tabs compact-tabs"><button className={scope === "market" ? "active" : ""} onClick={() => setScope("market")}>Overall market</button><button className={scope === "portfolio" ? "active" : ""} onClick={() => setScope("portfolio")}>My stocks</button></div>
-      <div className="news-page-list">{rows.length ? rows.map((row) => <a key={row.id} href={row.url} target="_blank" rel="noreferrer"><div><strong>{row.title}</strong><span>{row.publisher}{row.trackedSymbol ? ` · ${row.trackedSymbol}` : ""}</span></div><time>{dateTime(row.publishedAt)}</time></a>) : <div className="empty">No matching news found.</div>}</div>
-    </DetailShell>
-  );
-}
 
 export function InsiderTradesPage({ onBack }) {
   const [scope, setScope] = useState("market");
@@ -84,9 +58,7 @@ function DetailShell({ title, detail, busy, error, onRefresh, onBack, children }
   return <main className="app-shell redesigned detail-page-shell"><header className="detail-page-head"><button className="ghost" onClick={onBack}><ArrowLeft size={16} /> Back</button><div><h1>{title}</h1><p>{detail}</p></div><button className="ghost" disabled={busy} onClick={onRefresh}><RefreshCw size={15} className={busy ? "spin" : ""} /> Refresh</button></header>{error ? <div className="source-warning">{error}</div> : null}{busy ? <div className="market-loading-line" /> : null}{children}</main>;
 }
 
-function includes(row, search, fields) { const query = search.trim().toLowerCase(); return !query || fields.some((field) => String(row[field] || "").toLowerCase().includes(query)); }
 function paginationPages(page, pageCount) { const start = Math.max(1, Math.min(page - 2, pageCount - 4)); return Array.from({ length: Math.min(5, pageCount) }, (_, index) => start + index); }
-function dateTime(value) { return value ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : ""; }
 function number(value) { return Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 }); }
 function compactMoney(value) { const amount = Number(value || 0); const absolute = Math.abs(amount); if (absolute >= 10_000_000) return `₹${trim(amount / 10_000_000)} Cr`; if (absolute >= 100_000) return `₹${trim(amount / 100_000)} Lakh`; if (absolute >= 1_000) return `₹${trim(amount / 1_000)}K`; return `₹${number(amount)}`; }
 function trim(value) { return Number(value.toFixed(2)).toLocaleString("en-IN", { maximumFractionDigits: 2 }); }
