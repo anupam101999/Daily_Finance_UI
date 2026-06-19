@@ -5,6 +5,19 @@ const refreshTokenKey = "finance_refresh_token";
 const refreshIntervalMs = 29 * 60 * 1000;
 let refreshPromise = null;
 let refreshTimer = null;
+const requestTimeoutMs = Number(import.meta.env.VITE_API_TIMEOUT_MS || 30_000);
+
+export class ApiError extends Error {
+  constructor(message, { status = 0, code = "NETWORK_ERROR", requestId = "", details = null, cause } = {}) {
+    super(message, { cause });
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.requestId = requestId;
+    this.details = details;
+    this.retryable = status === 0 || status === 429 || status >= 500;
+  }
+}
 
 export function saveAuthSession(session) {
   if (!session?.user || !session?.accessToken || !session?.refreshToken) {
@@ -51,7 +64,7 @@ export async function registerUser(username, password) {
 }
 
 export async function publicRequest(path, options = {}) {
-  return parseResponse(await fetch(`${apiBaseUrl}${path}`, withJsonHeaders(options)));
+  return parseResponse(await fetchWithTimeout(`${apiBaseUrl}${path}`, withJsonHeaders(options)));
 }
 
 export async function authorizedRequest(path, options = {}) {
@@ -66,7 +79,7 @@ export async function authorizedFetch(path, options = {}, retry = true) {
   }
 
   const nextOptions = withJsonHeaders(options);
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetchWithTimeout(`${apiBaseUrl}${path}`, {
     ...nextOptions,
     headers: {
       ...nextOptions.headers,
@@ -117,11 +130,27 @@ async function parseResponse(response) {
   if (response.status === 204) return null;
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    const error = new Error(data?.error || `API request failed: ${response.status}`);
-    error.status = response.status;
-    throw error;
+    throw new ApiError(data?.error || `API request failed: ${response.status}`, {
+      status: response.status,
+      code: data?.code || "API_ERROR",
+      requestId: data?.requestId || response.headers.get("x-request-id") || "",
+      details: data?.details || null,
+    });
   }
   return data;
+}
+
+async function fetchWithTimeout(url, options) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), requestTimeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: options.signal || controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") throw new ApiError("The request timed out. Please try again.", { code: "REQUEST_TIMEOUT", cause: error });
+    throw new ApiError("Unable to reach the server. Check your connection and try again.", { cause: error });
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 function normalizeUser(user) {

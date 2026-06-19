@@ -101,6 +101,18 @@ export function getProfitFeature() {
   return authorizedRequest("/api/finance/profit");
 }
 
+export function getMarketIntelligenceFeature({ refresh = false, country = "IN" } = {}) {
+  const params = new URLSearchParams({ country });
+  if (refresh) params.set("refresh", "true");
+  return authorizedRequest(`/api/finance/market-intelligence?${params.toString()}`);
+}
+
+export function getInsiderTradesFeature({ year, scope = "market", search = "", date = "", page = 1, pageSize = 50 } = {}) {
+  const params = new URLSearchParams({ scope, search, date, page: String(page), pageSize: String(pageSize) });
+  if (year) params.set("year", String(year));
+  return authorizedRequest(`/api/finance/market-intelligence/insider-trades?${params.toString()}`);
+}
+
 export function getLedgerFeature({ page = 1, pageSize = 12, search = "", sort = "dateDesc" } = {}) {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), search, sort });
   return authorizedRequest(`/api/finance/ledger?${params.toString()}`);

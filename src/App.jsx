@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
-  Banknote,
   ChevronLeft,
   ChevronRight,
   Coins,
@@ -19,6 +18,10 @@ import {
   X,
 } from "lucide-react";
 import { clearAuthSession, loginUser, registerUser, restoreAuthSession } from "./services/apiClient";
+import { AssetForm, DividendForm, SaleForm, TransactionForm } from "./components/FinanceForms";
+import MarketIntelligence from "./components/MarketIntelligence";
+import { InsiderTradesPage, MarketNewsPage } from "./components/MarketDetailPages";
+import { ConfirmModal, FormModal, FullViewModal } from "./components/Modals";
 import {
   addDividend,
   addHolding,
@@ -28,6 +31,7 @@ import {
   getHeldStockOptions,
   getHoldingsFeature,
   getLedgerFeature,
+  getMarketIntelligenceFeature,
   getProfitFeature,
   sellHolding,
   syncFinanceQuotes,
@@ -52,6 +56,8 @@ const emptyTransaction = { assetId: "", sector: "", transactionDate: today, tran
 const emptyAnalyticsRange = { startDate: "", endDate: "" };
 const exchangeOptions = ["NSE", "BSE", "BOM", "MUTF_IN"];
 const analyticsPath = "/anlytics";
+const marketNewsPath = "/market-news";
+const insiderTradesPath = "/insider-trades";
 const allocationSortOptions = [
   { value: "valueDesc", label: "Value high to low" },
   { value: "valueAsc", label: "Value low to high" },
@@ -75,7 +81,11 @@ export default function App() {
   const [holdingsData, setHoldingsData] = useState(null);
   const [profitData, setProfitData] = useState(null);
   const [ledgerData, setLedgerData] = useState({ rows: [], assets: [], page: 1, pageSize: 12, total: 0 });
-  const [modal, setModal] = useState(isAnalyticsPath() ? "analytics" : "");
+  const [marketData, setMarketData] = useState(null);
+  const [marketError, setMarketError] = useState("");
+  const [marketBusy, setMarketBusy] = useState(false);
+  const [marketCountry, setMarketCountry] = useState("IN");
+  const [modal, setModal] = useState(routeModal);
   const [message, setMessage] = useState("Restoring session...");
   const [busy, setBusy] = useState(false);
   const [featureBusy, setFeatureBusy] = useState(false);
@@ -112,7 +122,7 @@ export default function App() {
 
   useEffect(() => {
     function handlePopState() {
-      setModal(isAnalyticsPath() ? "analytics" : "");
+      setModal(routeModal());
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -121,6 +131,13 @@ export default function App() {
   useEffect(() => {
     if (user) loadOverview();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    loadMarketIntelligence(false, marketCountry);
+    const timer = window.setInterval(() => loadMarketIntelligence(true, marketCountry), 60 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [user, marketCountry]);
 
   useEffect(() => {
     if (!message || message === "Restoring session...") return undefined;
@@ -207,6 +224,16 @@ export default function App() {
     setModal("");
   }
 
+  function openMarketPage(path, nextModal) {
+    setRoutePath(path);
+    setModal(nextModal);
+  }
+
+  function closeMarketPage() {
+    setRoutePath("/");
+    setModal("");
+  }
+
   async function loadLedger(page = 1, search = ledgerSearch, sort = ledgerSort) {
     setFeatureBusy(true);
     try {
@@ -231,6 +258,18 @@ export default function App() {
       setMessage(error.message);
     } finally {
       setFeatureBusy(false);
+    }
+  }
+
+  async function loadMarketIntelligence(refresh = false, country = marketCountry) {
+    setMarketBusy(true);
+    try {
+      setMarketData(await getMarketIntelligenceFeature({ refresh, country }));
+      setMarketError("");
+    } catch (error) {
+      setMarketError(error.message);
+    } finally {
+      setMarketBusy(false);
     }
   }
 
@@ -440,6 +479,8 @@ export default function App() {
     setUser(null);
     setOverview(emptyOverview());
     setHoldingsData(null);
+    setMarketData(null);
+    setMarketError("");
   }
 
   if (!user) {
@@ -504,6 +545,14 @@ export default function App() {
     );
   }
 
+  if (modal === "news") {
+    return <MarketNewsPage data={marketData} busy={marketBusy} error={marketError} country={marketCountry} onCountry={setMarketCountry} onRefresh={() => loadMarketIntelligence(true, marketCountry)} onBack={closeMarketPage} />;
+  }
+
+  if (modal === "insiders") {
+    return <InsiderTradesPage onBack={closeMarketPage} />;
+  }
+
   return (
     <main className="app-shell redesigned">
       <header className="topbar">
@@ -530,6 +579,8 @@ export default function App() {
         </div>
         <div className="hero-actions">
           <button className="ghost" onClick={() => openFeature("analytics")}><LineChart size={17} /> Analytics</button>
+          <button className="ghost" onClick={() => setModal("market")}>Market updates</button>
+          <button className="ghost" onClick={() => openMarketPage(insiderTradesPath, "insiders")}>Insider trades</button>
           <button className="ghost" onClick={() => openFeature("ledger")}>Transactions</button>
           <button onClick={openAddInvestmentModal}><Plus size={17} /> Add investment</button>
         </div>
@@ -565,7 +616,7 @@ export default function App() {
               />
             )
           ) : (
-            <AssetForm form={assetForm} setForm={setAssetForm} onSubmit={saveAsset} busy={busy} />
+            <AssetForm form={assetForm} setForm={setAssetForm} onSubmit={saveAsset} busy={busy} exchangeOptions={exchangeOptions} />
           )}
         </FormModal>
       ) : null}
@@ -640,6 +691,12 @@ export default function App() {
           {featureBusy ? <div className="empty">Loading ledger...</div> : (
             <Ledger data={sortedLedgerData} sort={ledgerSort} onSort={changeLedgerSort} page={ledgerPage} onPage={setLedgerPage} onEdit={startEditTransaction} onDelete={setDeletingTransaction} />
           )}
+        </FullViewModal>
+      ) : null}
+
+      {modal === "market" ? (
+        <FullViewModal title="Market updates" detail="Hourly news, institutional activity, corporate events, earnings, dividends, and disclosures." onClose={() => setModal("")}>
+          <MarketIntelligence data={marketData} busy={marketBusy} error={marketError} country={marketCountry} onCountry={setMarketCountry} onRefresh={() => loadMarketIntelligence(true, marketCountry)} onOpenNews={() => openMarketPage(marketNewsPath, "news")} onOpenInsiders={() => openMarketPage(insiderTradesPath, "insiders")} />
         </FullViewModal>
       ) : null}
 
@@ -1237,172 +1294,6 @@ function SortHeader({ label, field, sort, onSort, defaultDirection = "Desc" }) {
   );
 }
 
-function AssetForm({ form, setForm, onSubmit, busy, editing, onCancel }) {
-  return (
-    <form className="asset-form" onSubmit={onSubmit}>
-      <input value={form.stockName} onChange={(event) => setForm({ ...form, stockName: event.target.value })} placeholder="Investment name" required />
-      <input type="date" value={form.purchaseDate} onChange={(event) => setForm({ ...form, purchaseDate: event.target.value })} required />
-      <input value={form.symbol} onChange={(event) => setForm({ ...form, symbol: event.target.value.toUpperCase() })} placeholder="Symbol" required />
-      <select value={form.exchange} onChange={(event) => setForm({ ...form, exchange: event.target.value })} required>
-        {exchangeOptions.map((exchange) => <option key={exchange} value={exchange}>{exchange}</option>)}
-      </select>
-      <input value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder="Units bought" type="number" min="0" step="0.000001" required />
-      <input value={form.averagePrice} onChange={(event) => setForm({ ...form, averagePrice: event.target.value })} placeholder="Buy price per unit" type="number" min="0" step="0.01" required />
-      <input value={form.charges} onChange={(event) => setForm({ ...form, charges: event.target.value })} placeholder="Brokerage / charges" type="number" min="0" step="0.01" />
-      <input value={form.sector} onChange={(event) => setForm({ ...form, sector: event.target.value })} placeholder="Sector (optional)" />
-      <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes" />
-      <div className="button-row">
-        <button disabled={busy}><Plus size={16} /> {editing ? "Save" : "Add"}</button>
-        {editing ? <button type="button" className="ghost" onClick={onCancel}>Cancel</button> : null}
-      </div>
-    </form>
-  );
-}
-
-function SaleForm({ form, setForm, onSubmit, onCancel, busy, maxQuantity }) {
-  return (
-    <form className="asset-form" onSubmit={onSubmit}>
-      <input type="date" value={form.sellDate} onChange={(event) => setForm({ ...form, sellDate: event.target.value })} required />
-      <input value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder="Units sold" type="number" min="0" max={maxQuantity} step="0.000001" required />
-      <input value={form.sellPrice} onChange={(event) => setForm({ ...form, sellPrice: event.target.value })} placeholder="Sell price per unit" type="number" min="0" step="0.01" required />
-      <input value={form.charges} onChange={(event) => setForm({ ...form, charges: event.target.value })} placeholder="Brokerage / charges" type="number" min="0" step="0.01" />
-      <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes" />
-      <div className="button-row">
-        <button disabled={busy}>Record sale</button>
-        <button type="button" className="ghost" onClick={onCancel}>Cancel</button>
-      </div>
-    </form>
-  );
-}
-
-function DividendForm({ form, setForm, assets, onSubmit, onCancel, busy }) {
-  if (!assets.length) {
-    return (
-      <div className="empty">
-        No open holdings available for dividend entry.
-        <div className="button-row empty-actions">
-          <button type="button" className="ghost" onClick={onCancel}>Close</button>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <form className="asset-form" onSubmit={onSubmit}>
-      <select value={form.assetId} onChange={(event) => setForm({ ...form, assetId: event.target.value })} required>
-        <option value="" disabled>Select held stock</option>
-        {assets.map((asset) => (
-          <option key={asset.id} value={asset.id}>
-            {asset.name} ({asset.symbol}:{asset.exchange}) - Qty {num(asset.quantity)}
-          </option>
-        ))}
-      </select>
-      <input type="date" value={form.dividendDate} onChange={(event) => setForm({ ...form, dividendDate: event.target.value })} required />
-      <input value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="Dividend amount received" type="number" min="0" step="0.01" required />
-      <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes" />
-      <div className="button-row">
-        <button disabled={busy}><Banknote size={16} /> Add dividend</button>
-        <button type="button" className="ghost" onClick={onCancel}>Cancel</button>
-      </div>
-    </form>
-  );
-}
-
-function TransactionForm({ form, setForm, assets, onSubmit, onCancel, busy }) {
-  return (
-    <form className="asset-form transaction-form" onSubmit={onSubmit}>
-      <label className="form-field">
-        <span>Investment</span>
-        <select value={form.assetId} onChange={(event) => setForm({ ...form, assetId: event.target.value })} required>
-          <option value="" disabled>Select asset</option>
-          {assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.symbol}:{asset.exchange}</option>)}
-        </select>
-      </label>
-      <label className="form-field">
-        <span>Transaction type</span>
-        <select value={form.transactionType} onChange={(event) => setForm({ ...form, transactionType: event.target.value })} required>
-          <option value="buy">Buy</option>
-          <option value="sell">Sell</option>
-          <option value="dividend">Dividend</option>
-          <option value="fee">Fee</option>
-        </select>
-      </label>
-      <label className="form-field">
-        <span>Transaction date</span>
-        <input type="date" value={form.transactionDate} onChange={(event) => setForm({ ...form, transactionDate: event.target.value })} required />
-      </label>
-      <label className="form-field">
-        <span>Units</span>
-        <input value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} type="number" min="0" step="0.000001" required />
-      </label>
-      <label className="form-field">
-        <span>Price or amount</span>
-        <input value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} type="number" min="0" step="0.01" required />
-      </label>
-      <label className="form-field">
-        <span>Brokerage / charges</span>
-        <input value={form.charges} onChange={(event) => setForm({ ...form, charges: event.target.value })} type="number" min="0" step="0.01" />
-      </label>
-      <label className="form-field full-field">
-        <span>Sector (optional)</span>
-        <input value={form.sector} onChange={(event) => setForm({ ...form, sector: event.target.value })} placeholder="Enter sector manually" />
-      </label>
-      <label className="form-field full-field">
-        <span>Notes</span>
-        <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Optional notes" />
-      </label>
-      <div className="button-row">
-        <button disabled={busy}>Save</button>
-        <button type="button" className="ghost" onClick={onCancel}>Cancel</button>
-      </div>
-    </form>
-  );
-}
-
-function FormModal({ title, detail, children, onClose }) {
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="modal-panel form-modal" role="dialog" aria-modal="true" aria-labelledby="form-modal-title" onMouseDown={(event) => event.stopPropagation()}>
-        <ModalHead id="form-modal-title" title={title} detail={detail} onClose={onClose} />
-        {children}
-      </section>
-    </div>
-  );
-}
-
-function FullViewModal({ title, detail, children, onClose }) {
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="modal-panel full-view-modal" role="dialog" aria-modal="true" aria-labelledby="full-view-title" onMouseDown={(event) => event.stopPropagation()}>
-        <ModalHead id="full-view-title" title={title} detail={detail} onClose={onClose} />
-        {children}
-      </section>
-    </div>
-  );
-}
-
-function ConfirmModal({ title, detail, confirmLabel, busy, onConfirm, onClose }) {
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="modal-panel confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" onMouseDown={(event) => event.stopPropagation()}>
-        <ModalHead id="confirm-modal-title" title={title} detail={detail} onClose={onClose} />
-        <div className="button-row">
-          <button className="danger solid-danger" type="button" disabled={busy} onClick={onConfirm}><Trash2 size={16} /> {confirmLabel}</button>
-          <button className="ghost" type="button" onClick={onClose}>Cancel</button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function ModalHead({ id, title, detail, onClose }) {
-  return (
-    <div className="modal-head">
-      <div><h2 id={id}>{title}</h2><p>{detail}</p></div>
-      <button className="icon-button" type="button" onClick={onClose} aria-label="Close"><X size={18} /></button>
-    </div>
-  );
-}
-
 function money(value, currency = "INR") {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: currency || "INR", maximumFractionDigits: 2 }).format(Number(value || 0));
 }
@@ -1610,8 +1501,12 @@ function currentTransactionAsset(transaction) {
   }];
 }
 
-function isAnalyticsPath() {
-  return window.location.pathname.replace(/\/+$/, "") === analyticsPath;
+function routeModal() {
+  const path = window.location.pathname.replace(/\/+$/, "");
+  if (path === analyticsPath) return "analytics";
+  if (path === marketNewsPath) return "news";
+  if (path === insiderTradesPath) return "insiders";
+  return "";
 }
 
 function setRoutePath(path) {
