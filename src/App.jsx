@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  Calculator,
   ChevronLeft,
   ChevronRight,
   Coins,
@@ -59,6 +60,7 @@ const exchangeOptions = ["NSE", "BSE", "BOM", "MUTF_IN"];
 const analyticsPath = "/anlytics";
 const marketNewsPath = "/market-news";
 const insiderTradesPath = "/insider-trades";
+const sipCalculatorPath = "/sip-calculator";
 const allocationSortOptions = [
   { value: "valueDesc", label: "Value high to low" },
   { value: "valueAsc", label: "Value low to high" },
@@ -233,6 +235,11 @@ export default function App() {
   function closeMarketPage() {
     setRoutePath("/");
     setModal("");
+  }
+
+  function openSipCalculator() {
+    setRoutePath(sipCalculatorPath);
+    setModal("sip-calculator");
   }
 
   async function loadLedger(page = 1, search = ledgerSearch, sort = ledgerSort) {
@@ -554,6 +561,25 @@ export default function App() {
     return <InsiderTradesPage onBack={closeMarketPage} />;
   }
 
+  if (modal === "sip-calculator") {
+    return (
+      <main className="app-shell redesigned sip-page-shell">
+        <header className="topbar">
+          <div className="topbar-brand">
+            <img src="/daily-finance-logo.png" alt="" />
+            <span><strong>Finance OS</strong><em>Investment growth projection</em></span>
+          </div>
+          <nav><button className="danger" onClick={logout}><LogOut size={16} /> Logout</button></nav>
+        </header>
+        <section className="page-titlebar">
+          <button className="ghost" type="button" onClick={closeMarketPage}><ChevronLeft size={16} /> Back</button>
+          <div><h1>SIP Calculator</h1><p>Combine an initial investment with a monthly SIP and project its growth.</p></div>
+        </section>
+        <SipCalculator />
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell redesigned">
       <header className="topbar">
@@ -579,6 +605,7 @@ export default function App() {
           <p>{overview.holdingCount} open positions, {overview.soldCount} closed trades, total return {num(overview.profitPercent)}%</p>
         </div>
         <div className="hero-actions">
+          <button className="ghost" onClick={openSipCalculator}><Calculator size={17} /> SIP Calculator</button>
           <button className="ghost" onClick={() => openFeature("analytics")}><LineChart size={17} /> Analytics</button>
           <button className="ghost" onClick={() => setModal("market")}>Market updates</button>
           <button className="ghost" onClick={() => openMarketPage(insiderTradesPath, "insiders")}>Insider trades</button>
@@ -595,8 +622,6 @@ export default function App() {
       </section>
 
       <DashboardOverview overview={overview} onHealthDetails={() => setShowHealthBreakdown(true)} />
-
-      <SipCalculator />
 
       {modal === "add" ? (
         <FormModal title="Add investment" detail={addDividendMode ? "Record dividend income for an open holding." : "Record a buy. If the symbol already exists, it adds another buy lot."} onClose={() => { setModal(""); setAddDividendMode(false); }}>
@@ -1509,6 +1534,7 @@ function routeModal() {
   if (path === analyticsPath) return "analytics";
   if (path === marketNewsPath) return "news";
   if (path === insiderTradesPath) return "insiders";
+  if (path === sipCalculatorPath) return "sip-calculator";
   return "";
 }
 

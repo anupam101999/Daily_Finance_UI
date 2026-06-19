@@ -1292,13 +1292,6 @@ button.kpi:hover {
 .sip-result-grid strong { font-size: 1.05rem; }
 .sip-allocation { height: 8px; border-radius: 99px; background: #c9eee5; overflow: hidden; }
 .sip-allocation span { display: block; height: 100%; background: var(--brand); }
-.sip-goal { display: grid; gap: 8px; border-radius: 10px; background: var(--panel-soft); padding: 12px; }
-.sip-goal > div:first-child { display: flex; align-items: center; gap: 9px; }
-.sip-goal span, .sip-goal strong, .sip-goal small { display: block; }
-.sip-goal small { margin-top: 2px; color: var(--muted); font-size: 0.7rem; }
-.sip-goal-track { height: 7px; border-radius: 99px; background: #dce4e8; overflow: hidden; }
-.sip-goal-track i { display: block; height: 100%; background: var(--brand); }
-.sip-goal p { margin: 0; color: var(--muted); font-size: 0.73rem; }
 .sip-projection { border-top: 1px solid var(--line); padding-top: 12px; }
 .sip-projection summary { display: flex; align-items: center; gap: 7px; color: var(--brand-dark); cursor: pointer; font-weight: 850; }
 .sip-table { max-height: 300px; overflow: auto; margin-top: 10px; border: 1px solid var(--line); border-radius: 9px; }
@@ -2135,7 +2128,7 @@ button.kpi:hover {
   .mini-legend { width: 100%; }
   .hero-actions { justify-content: stretch; }
   .sip-head { align-items: stretch; flex-direction: column; }
-  .sip-mode-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sip-mode-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sip-inputs, .sip-result-grid { grid-template-columns: 1fr; }
   .sip-table { overflow-x: auto; }
   .sip-table > div { min-width: 560px; }
