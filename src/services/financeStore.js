@@ -16,12 +16,16 @@ export function runAdminBatch(batchId) {
   return authorizedRequest(`/api/admin/batches/${encodeURIComponent(batchId)}/run`, { method: "POST", timeoutMs: 5 * 60 * 1000 });
 }
 
+export function updateAdminBatchSchedule(batchId, cronExpression, enabled) {
+  return authorizedRequest(`/api/admin/batches/${encodeURIComponent(batchId)}/schedule`, { method: "PATCH", body: JSON.stringify({ cronExpression, enabled }) });
+}
+
 export function getInsiderBackfillStatus() {
   return authorizedRequest("/api/finance/insider-trades/backfill/status");
 }
 
-export function startInsiderBackfill(fromYear, toYear) {
-  return authorizedRequest("/api/finance/insider-trades/backfill", { method: "POST", body: JSON.stringify({ fromYear, toYear }) });
+export function startInsiderBackfill(fromYear, fromMonth, toYear, toMonth) {
+  return authorizedRequest("/api/finance/insider-trades/backfill", { method: "POST", body: JSON.stringify({ fromYear, fromMonth, toYear, toMonth }) });
 }
 
 export function terminateInsiderBackfill() {

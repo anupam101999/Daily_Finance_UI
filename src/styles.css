@@ -1304,15 +1304,21 @@ button.kpi:hover {
 .finance-batch-head { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
 .finance-batch-head > span { display: inline-flex; align-items: center; gap: 6px; color: var(--brand-dark); font-weight: 850; }
 .finance-batch-list { display: grid; gap: 7px; }
-.finance-batch-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-soft); padding: 9px; }
+.finance-batch-list article { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(250px, auto) auto; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-soft); padding: 9px; }
 .finance-batch-list p { margin: 3px 0 5px; color: var(--muted); }
 .finance-batch-list small { display: block; margin-top: 2px; color: var(--muted); font-size: 0.7rem; }
 .finance-batch-list .batch-warning { color: #9a5b13; }
 .finance-batch-list article > button { min-width: 104px; }
+.batch-schedule-editor { display: flex; align-items: end; flex-wrap: wrap; gap: 6px; }
+.batch-schedule-editor label { display: grid; gap: 3px; color: var(--muted); font-size: 0.66rem; font-weight: 800; text-transform: uppercase; }
+.batch-schedule-editor input, .batch-schedule-editor select { width: 112px; min-height: 34px; }
+.batch-schedule-editor .batch-enabled { display: flex; align-items: center; align-self: center; gap: 5px; }
+.batch-schedule-editor .batch-enabled input { width: auto; min-height: auto; }
+.batch-schedule-editor button { min-height: 34px; }
 .finance-backfill { display: grid; gap: 7px; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 10px; }
 .finance-backfill > p { margin: 0; color: var(--muted); }
 .finance-backfill > small { color: var(--muted); font-size: 0.7rem; }
-.backfill-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 180px)); gap: 8px; }
+.backfill-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 150px)); gap: 8px; }
 .backfill-fields label { display: grid; gap: 4px; color: var(--muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
 .backfill-progress { overflow: hidden; height: 7px; border-radius: 99px; background: var(--panel-soft); }
 .backfill-progress i { display: block; height: 100%; border-radius: inherit; background: var(--brand); transition: width 0.25s ease; }
@@ -2164,6 +2170,9 @@ textarea { min-height: 64px; }
   .finance-batch-head { align-items: stretch; flex-direction: column; }
   .finance-batch-list article { grid-template-columns: 1fr; }
   .finance-batch-list article > button { width: 100%; }
+  .batch-schedule-editor { align-items: stretch; }
+  .batch-schedule-editor label:not(.batch-enabled) { flex: 1 1 120px; }
+  .batch-schedule-editor input, .batch-schedule-editor select { width: 100%; }
   .backfill-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
