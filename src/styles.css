@@ -1270,6 +1270,43 @@ button.kpi:hover {
 
 .button-row { display: flex; flex-wrap: wrap; gap: 8px; }
 
+.sip-calculator { display: grid; gap: 18px; margin-top: 16px; padding: 18px; }
+.sip-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; }
+.sip-head > div:first-child > span { display: flex; align-items: center; gap: 7px; color: var(--brand); font-size: 0.74rem; font-weight: 900; text-transform: uppercase; }
+.sip-head h2 { margin: 5px 0 0; font-size: 1.18rem; }
+.sip-head p { margin: 4px 0 0; color: var(--muted); font-size: 0.78rem; }
+.sip-mode-tabs { display: flex; gap: 5px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-soft); padding: 4px; }
+.sip-mode-tabs button { min-height: 36px; background: transparent; color: var(--muted); padding: 0 12px; }
+.sip-mode-tabs button.active { background: var(--brand); color: white; }
+.sip-layout { display: grid; grid-template-columns: minmax(280px, 0.75fr) minmax(360px, 1.25fr); gap: 18px; }
+.sip-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
+.sip-field { display: grid; gap: 5px; }
+.sip-field > span { color: var(--muted); font-size: 0.7rem; font-weight: 850; text-transform: uppercase; }
+.sip-field > div { display: flex; align-items: center; min-height: 44px; border: 1px solid var(--line); border-radius: 9px; background: white; overflow: hidden; }
+.sip-field input { width: 100%; min-width: 0; border: 0; outline: 0; padding: 0 10px; }
+.sip-field em { align-self: stretch; display: flex; align-items: center; background: var(--panel-soft); color: var(--muted); padding: 0 9px; font-size: 0.68rem; font-style: normal; font-weight: 900; white-space: nowrap; }
+.sip-results { display: grid; gap: 12px; }
+.sip-result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.sip-result-grid article { display: grid; gap: 5px; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 12px; }
+.sip-result-grid span { color: var(--muted); font-size: 0.7rem; font-weight: 800; }
+.sip-result-grid strong { font-size: 1.05rem; }
+.sip-allocation { height: 8px; border-radius: 99px; background: #c9eee5; overflow: hidden; }
+.sip-allocation span { display: block; height: 100%; background: var(--brand); }
+.sip-goal { display: grid; gap: 8px; border-radius: 10px; background: var(--panel-soft); padding: 12px; }
+.sip-goal > div:first-child { display: flex; align-items: center; gap: 9px; }
+.sip-goal span, .sip-goal strong, .sip-goal small { display: block; }
+.sip-goal small { margin-top: 2px; color: var(--muted); font-size: 0.7rem; }
+.sip-goal-track { height: 7px; border-radius: 99px; background: #dce4e8; overflow: hidden; }
+.sip-goal-track i { display: block; height: 100%; background: var(--brand); }
+.sip-goal p { margin: 0; color: var(--muted); font-size: 0.73rem; }
+.sip-projection { border-top: 1px solid var(--line); padding-top: 12px; }
+.sip-projection summary { display: flex; align-items: center; gap: 7px; color: var(--brand-dark); cursor: pointer; font-weight: 850; }
+.sip-table { max-height: 300px; overflow: auto; margin-top: 10px; border: 1px solid var(--line); border-radius: 9px; }
+.sip-table > div { display: grid; grid-template-columns: 70px repeat(3, minmax(110px, 1fr)); gap: 10px; border-bottom: 1px solid var(--line); padding: 9px 11px; font-size: 0.75rem; text-align: right; }
+.sip-table > div span:first-child { text-align: left; }
+.sip-table-head { position: sticky; top: 0; background: var(--panel-soft); color: var(--muted); font-weight: 900; text-transform: uppercase; }
+.sip-note { margin: 0; color: var(--muted); font-size: 0.68rem; text-align: center; }
+
 .market-intelligence {
   display: grid;
   gap: 14px;
@@ -1439,6 +1476,8 @@ button.kpi:hover {
 .insider-table article a { color: var(--brand-dark); text-decoration: none; }
 .insider-table article a:hover { text-decoration: underline; }
 .insider-table article small, .insider-table article time { margin-top: 3px; color: var(--muted); font-size: 0.72rem; }
+.insider-value b, .insider-value small { display: block; text-align: right; }
+.insider-value small { white-space: nowrap; }
 .detail-pager { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .detail-pager-summary { color: var(--muted); font-size: 0.78rem; font-weight: 800; }
 .detail-pager-summary span { margin-left: 8px; }
@@ -2076,6 +2115,7 @@ button.kpi:hover {
   .holding .row-actions { grid-column: 1 / -1; justify-content: flex-start; }
   .ledger > div { grid-template-columns: 100px minmax(160px, 1fr) 90px 90px minmax(110px, 1fr); }
   .ledger-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .sip-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -2094,6 +2134,11 @@ button.kpi:hover {
   .mini-donut-layout { grid-template-columns: 1fr; justify-items: center; }
   .mini-legend { width: 100%; }
   .hero-actions { justify-content: stretch; }
+  .sip-head { align-items: stretch; flex-direction: column; }
+  .sip-mode-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sip-inputs, .sip-result-grid { grid-template-columns: 1fr; }
+  .sip-table { overflow-x: auto; }
+  .sip-table > div { min-width: 560px; }
   .hero-actions button { flex: 1; }
   .search-toolbar { grid-template-columns: 1fr; }
   .status-tabs { width: 100%; }

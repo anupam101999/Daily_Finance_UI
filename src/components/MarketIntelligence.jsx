@@ -83,7 +83,7 @@ function ActionList({ rows }) {
 
 function InsiderList({ rows }) {
   if (!rows.length) return <Empty text="No recent insider disclosures found." />;
-  return rows.slice(0, 12).map((row) => <article className="market-row" key={row.id}><div><strong>{row.symbol} · {row.person || "Insider"}</strong><span>{row.transactionType || row.category} · Qty {formatNumber(row.quantity)}</span></div><time>{row.date}</time></article>);
+  return rows.slice(0, 12).map((row) => <article className="market-row" key={row.id}><div><strong>{row.symbol} · {row.person || "Insider"}</strong><span>{row.transactionType || row.category} · Qty {formatNumber(row.quantity)}{row.marketCapImpactPercent == null ? "" : ` · ${formatImpact(row.marketCapImpactPercent)} impact`}</span></div><time>{row.date}</time></article>);
 }
 
 function PromoterList({ rows }) {
@@ -119,4 +119,9 @@ function formatNumber(value) {
 
 function signed(value) {
   return `${Number(value) >= 0 ? "+" : ""}${formatNumber(value)}`;
+}
+
+function formatImpact(value) {
+  const percent = Number(value || 0);
+  return `${percent > 0 && percent < 0.01 ? "<0.01" : formatNumber(percent)}%`;
 }

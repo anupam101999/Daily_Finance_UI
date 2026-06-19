@@ -20,6 +20,7 @@ import {
 import { clearAuthSession, loginUser, registerUser, restoreAuthSession } from "./services/apiClient";
 import { AssetForm, DividendForm, SaleForm, TransactionForm } from "./components/FinanceForms";
 import MarketIntelligence from "./components/MarketIntelligence";
+import SipCalculator from "./components/SipCalculator";
 import { InsiderTradesPage, MarketNewsPage } from "./components/MarketDetailPages";
 import { ConfirmModal, FormModal, FullViewModal } from "./components/Modals";
 import {
@@ -594,6 +595,8 @@ export default function App() {
       </section>
 
       <DashboardOverview overview={overview} onHealthDetails={() => setShowHealthBreakdown(true)} />
+
+      <SipCalculator />
 
       {modal === "add" ? (
         <FormModal title="Add investment" detail={addDividendMode ? "Record dividend income for an open holding." : "Record a buy. If the symbol already exists, it adds another buy lot."} onClose={() => { setModal(""); setAddDividendMode(false); }}>
