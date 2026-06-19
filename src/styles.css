@@ -1326,6 +1326,11 @@ button.kpi:hover {
 .backfill-status.status-running, .backfill-status.status-queued { background: #e7f4f0; color: var(--brand-dark); }
 .backfill-status.status-cancelling { background: #fff1df; color: #8a520d; }
 .backfill-status.status-cancelled, .backfill-status.status-failed { background: #fff0ee; color: var(--loss); }
+.emergency-sql { border-top: 1px solid var(--line); padding-top: 8px; }
+.emergency-sql summary { color: var(--loss); cursor: pointer; font-weight: 850; }
+.emergency-sql > p { margin: 7px 0; color: var(--muted); font-size: 0.72rem; }
+.emergency-sql-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.emergency-sql pre { overflow: auto; max-height: 300px; margin: 0; border: 1px solid var(--line); border-radius: 8px; background: #111827; color: #e5eef5; padding: 10px; font-size: 0.7rem; line-height: 1.45; }
 
 .compact-tabs {
   width: min(360px, 100%);
@@ -2174,6 +2179,7 @@ textarea { min-height: 64px; }
   .batch-schedule-editor label:not(.batch-enabled) { flex: 1 1 120px; }
   .batch-schedule-editor input, .batch-schedule-editor select { width: 100%; }
   .backfill-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .emergency-sql-head { align-items: stretch; flex-direction: column; }
 }
 
 @media (max-width: 430px) {

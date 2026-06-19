@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Play, RefreshCw, ServerCog, Square } from "lucide-react";
+import { Copy, Play, RefreshCw, ServerCog, Square } from "lucide-react";
 import { getAdminBatches, getInsiderBackfillStatus, runAdminBatch, startInsiderBackfill, terminateInsiderBackfill, updateAdminBatchSchedule } from "../services/financeStore";
 
 export default function BatchOperations() {
@@ -157,7 +157,29 @@ function BackfillControl({ status, fromYear, fromMonth, toYear, toMonth, setFrom
       <div className="backfill-fields"><label><span>From month</span><select value={fromMonth} disabled={active || busy} onChange={(event) => setFromMonth(event.target.value)}>{monthOptions()}</select></label><label><span>From year</span><input type="number" min="2015" max={new Date().getFullYear()} value={fromYear} disabled={active || busy} onChange={(event) => setFromYear(event.target.value)} /></label><label><span>To month</span><select value={toMonth} disabled={active || busy} onChange={(event) => setToMonth(event.target.value)}>{monthOptions()}</select></label><label><span>To year</span><input type="number" min="2015" max={new Date().getFullYear()} value={toYear} disabled={active || busy} onChange={(event) => setToYear(event.target.value)} /></label></div>
       {status && status.status !== "not_started" ? <><div className="backfill-progress"><i style={{ width: `${progress}%` }} /></div><small>{status.currentLabel || status.status} · {status.completedMonths || 0} of {status.totalMonths || 0} months · {progress}%</small><small>{Number(status.inserted || 0).toLocaleString("en-IN")} inserted · {Number(status.duplicates || 0).toLocaleString("en-IN")} duplicates · {status.failedMonths || 0} failed</small>{status.lastError && status.status !== "cancelled" ? <small className="loss">{status.lastError}</small> : null}</> : null}
       {invalidRange ? <small className="loss">End month must be after the start month.</small> : null}<div className="button-row"><button type="button" disabled={active || busy || invalidRange || !fromYear || !toYear} onClick={onStart}><Play size={16} /> {status?.status === "cancelled" ? "Re-run backfill" : "Run backfill"}</button>{active ? <button className="solid-danger" type="button" disabled={busy} onClick={onTerminate}><Square size={15} /> {status?.status === "cancelling" ? "Force terminate" : "Terminate now"}</button> : null}</div>
+      <EmergencyStopSql />
     </section>
+  );
+}
+
+function EmergencyStopSql() {
+  const [copied, setCopied] = useState(false);
+  async function copySql() {
+    try {
+      await navigator.clipboard.writeText(emergencyStopSql);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+  return (
+    <details className="emergency-sql">
+      <summary>Emergency DB stop query</summary>
+      <p>Use only when normal termination remains stuck. Run this in the PostgreSQL console.</p>
+      <div className="emergency-sql-head"><strong>Terminate worker and mark backfill cancelled</strong><button className="ghost" type="button" onClick={copySql}><Copy size={14} /> {copied ? "Copied" : "Copy SQL"}</button></div>
+      <pre><code>{emergencyStopSql}</code></pre>
+    </details>
   );
 }
 
@@ -195,3 +217,23 @@ function scheduleLabel(expression) {
   const date = new Date(2000, 0, 1, Number(parts[1]) || 0, Number(parts[0]) || 0);
   return `Daily at ${new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" }).format(date)}`;
 }
+
+const emergencyStopSql = `BEGIN;
+
+SELECT pg_terminate_backend(l.pid)
+FROM pg_locks l
+WHERE l.locktype = 'advisory'
+  AND l.classid = 0
+  AND l.objid = 724061923
+  AND l.granted
+  AND l.pid <> pg_backend_pid();
+
+UPDATE fin_insider_sync_state
+SET status = 'cancelled',
+    current_label = 'Terminated manually',
+    last_error = '',
+    completed_at = now(),
+    updated_at = now()
+WHERE id = 'backfill';
+
+COMMIT;`;
