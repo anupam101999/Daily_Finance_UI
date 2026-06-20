@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   Calculator,
+  Camera,
   ChevronLeft,
   ChevronRight,
   Coins,
@@ -22,9 +23,10 @@ import {
 import { clearAuthSession, loginUser, registerUser, restoreAuthSession } from "./services/apiClient";
 import { AssetForm, DividendForm, SaleForm, TransactionForm } from "./components/FinanceForms";
 import SipCalculator from "./components/SipCalculator";
-import BatchOperations from "./components/BatchOperations";
 import { InsiderTradesPage } from "./components/MarketDetailPages";
 import { ConfirmModal, FormModal, FullViewModal } from "./components/Modals";
+import PortfolioSnapshots from "./components/PortfolioSnapshots";
+import AdminDashboard from "./components/AdminDashboard";
 import {
   addDividend,
   addHolding,
@@ -35,9 +37,11 @@ import {
   getHoldingsFeature,
   getLedgerFeature,
   getProfitFeature,
+  getPortfolioSnapshots,
   sellHolding,
   syncFinanceQuotes,
   updateTransaction,
+  updatePortfolioSnapshot,
 } from "./services/financeStore";
 
 const today = new Date().toISOString().slice(0, 10);
@@ -60,6 +64,8 @@ const exchangeOptions = ["NSE", "BSE", "BOM", "MUTF_IN"];
 const analyticsPath = "/anlytics";
 const insiderTradesPath = "/insider-trades";
 const sipCalculatorPath = "/sip-calculator";
+const snapshotsPath = "/snapshots";
+const adminPath = "/admin";
 const allocationSortOptions = [
   { value: "valueDesc", label: "Value high to low" },
   { value: "valueAsc", label: "Value low to high" },
@@ -83,6 +89,7 @@ export default function App() {
   const [holdingsData, setHoldingsData] = useState(null);
   const [profitData, setProfitData] = useState(null);
   const [ledgerData, setLedgerData] = useState({ rows: [], assets: [], page: 1, pageSize: 12, total: 0 });
+  const [snapshotData, setSnapshotData] = useState(null);
   const [modal, setModal] = useState(routeModal);
   const [message, setMessage] = useState("Restoring session...");
   const [busy, setBusy] = useState(false);
@@ -103,6 +110,8 @@ export default function App() {
   const [appliedLedgerSearch, setAppliedLedgerSearch] = useState("");
   const [holdingPage, setHoldingPage] = useState(1);
   const [ledgerPage, setLedgerPage] = useState(1);
+  const [snapshotPage, setSnapshotPage] = useState(1);
+  const [snapshotType, setSnapshotType] = useState("all");
   const [analyticsPeriod, setAnalyticsPeriod] = useState("1y");
   const [analyticsRange, setAnalyticsRange] = useState(emptyAnalyticsRange);
   const [addDividendMode, setAddDividendMode] = useState(false);
@@ -148,6 +157,10 @@ export default function App() {
     if (modal === "investments") loadHoldings(holdingPage, appliedHoldingSearch, holdingStatus, holdingSort);
   }, [modal, holdingPage, appliedHoldingSearch, holdingStatus, holdingSort]);
 
+  useEffect(() => {
+    if (user && modal === "snapshots") loadSnapshots(snapshotPage, snapshotType);
+  }, [user, modal, snapshotPage, snapshotType]);
+
   const holdings = holdingsData?.holdings || [];
   const sortedHoldings = sortHoldings(holdings, holdingSort);
   const sortedLedgerData = { ...ledgerData, rows: sortLedgerRows(ledgerData.rows || [], ledgerSort) };
@@ -172,7 +185,8 @@ export default function App() {
       if (modal === "investments") await loadHoldings(holdingPage, appliedHoldingSearch, holdingStatus);
       if (modal === "analytics") await loadAnalytics(analyticsPeriod, analyticsRange);
       if (modal === "profit") setProfitData(await getProfitFeature());
-      setMessage(`Synced ${result.updated || 0} of ${result.checked || 0} market prices${result.skipped ? `, skipped ${result.skipped} options` : ""}.`);
+      const failures = result.failures || [];
+      setMessage(`Synced ${result.updated || 0} of ${result.checked || 0} market prices${result.skipped ? `, skipped ${result.skipped} options` : ""}.${failures.length ? ` Failed: ${failures.map((row) => `${row.symbol} (${row.error})`).join("; ")}` : ""}`);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -255,6 +269,36 @@ export default function App() {
     } finally {
       setFeatureBusy(false);
     }
+  }
+
+  async function loadSnapshots(page = snapshotPage, type = snapshotType) {
+    setFeatureBusy(true);
+    try {
+      setSnapshotData(await getPortfolioSnapshots({ page, pageSize: 9, type }));
+      setSnapshotPage(page);
+      setMessage("");
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setFeatureBusy(false);
+    }
+  }
+
+  async function saveSnapshot(snapshot) {
+    setFeatureBusy(true);
+    try { await updatePortfolioSnapshot(snapshot.id, snapshot); await loadSnapshots(snapshotPage, snapshotType); setMessage("Portfolio snapshot updated."); }
+    catch (error) { setMessage(error.message); throw error; }
+    finally { setFeatureBusy(false); }
+  }
+
+  function openSnapshots() {
+    setRoutePath(snapshotsPath);
+    setModal("snapshots");
+  }
+
+  function changeSnapshotType(type) {
+    setSnapshotType(type);
+    setSnapshotPage(1);
   }
 
   async function openAddInvestmentModal() {
@@ -550,6 +594,34 @@ export default function App() {
     );
   }
 
+  if (modal === "snapshots") {
+    return (
+      <main className="app-shell redesigned snapshot-page-shell">
+        <header className="topbar">
+          <div className="topbar-brand">
+            <img src="/daily-finance-logo.png" alt="" />
+            <span><strong>Finance OS</strong><em>Portfolio history and scheduled checkpoints</em></span>
+          </div>
+          <nav><button className="danger" onClick={logout}><LogOut size={16} /> Logout</button></nav>
+        </header>
+        {message ? <div className="notice">{message}</div> : null}
+        <section className="page-titlebar snapshot-titlebar">
+          <button className="ghost" type="button" onClick={closeMarketPage}><ChevronLeft size={16} /> Back</button>
+          <div><h1>Portfolio snapshots</h1><p>Daily, weekly, monthly, and fiscal-year records captured automatically at 6:00 AM.</p></div>
+          <div className="page-title-metrics">
+            <span><small>Saved records</small><b>{snapshotData?.total || 0}</b></span>
+            <span><small>Schedule</small><b>6:00 AM IST</b></span>
+          </div>
+        </section>
+        <PortfolioSnapshots data={snapshotData} type={snapshotType} busy={featureBusy} onType={changeSnapshotType} onPage={setSnapshotPage} onEdit={saveSnapshot} />
+      </main>
+    );
+  }
+
+  if (modal === "admin" && user.isAdmin) {
+    return <main className="app-shell redesigned admin-page-shell"><header className="topbar"><div className="topbar-brand"><img src="/daily-finance-logo.png" alt="" /><span><strong>Finance OS Admin</strong><em>Operations, observability, and automation</em></span></div><nav><button className="danger" onClick={logout}><LogOut size={16} /> Logout</button></nav></header><section className="page-titlebar admin-titlebar"><button className="ghost" onClick={closeMarketPage}><ChevronLeft size={16} /> Back</button><div><h1>Administration</h1><p>A dedicated control room for API logs, failures, schedules, and batch runs.</p></div></section><AdminDashboard /></main>;
+  }
+
   return (
     <main className="app-shell redesigned">
       <header className="topbar">
@@ -575,9 +647,11 @@ export default function App() {
           <p>{overview.holdingCount} open positions, {overview.soldCount} closed trades, total return {num(overview.profitPercent)}%</p>
         </div>
         <div className="hero-actions">
+          {user.isAdmin ? <button className="ghost" onClick={() => openMarketPage(adminPath, "admin")}><ServerCog size={17} /> Admin</button> : null}
           {/* {user.isAdmin ? <button className="ghost" onClick={() => setModal("batches")}><ServerCog size={17} /> Batch Operations</button> : null} */}
           <button className="ghost" onClick={openSipCalculator}><Calculator size={17} /> SIP Calculator</button>
           <button className="ghost" onClick={() => openFeature("analytics")}><LineChart size={17} /> Analytics</button>
+          <button className="ghost" onClick={openSnapshots}><Camera size={17} /> Snapshots</button>
           {/* <button className="ghost" onClick={() => openMarketPage(insiderTradesPath, "insiders")}>Insider trades</button> */}
           <button className="ghost" onClick={() => openFeature("ledger")}>Transactions</button>
           <button onClick={openAddInvestmentModal}><Plus size={17} /> Add investment</button>
@@ -689,12 +763,6 @@ export default function App() {
           {featureBusy ? <div className="empty">Loading ledger...</div> : (
             <Ledger data={sortedLedgerData} sort={ledgerSort} onSort={changeLedgerSort} page={ledgerPage} onPage={setLedgerPage} onEdit={startEditTransaction} onDelete={setDeletingTransaction} />
           )}
-        </FullViewModal>
-      ) : null}
-
-      {modal === "batches" && user.isAdmin ? (
-        <FullViewModal title="Batch Operations" detail="Run scheduled system jobs manually. This workspace is restricted to administrators." onClose={() => setModal("")}>
-          <BatchOperations />
         </FullViewModal>
       ) : null}
 
@@ -1487,6 +1555,8 @@ function routeModal() {
   if (path === analyticsPath) return "analytics";
   if (path === insiderTradesPath) return "insiders";
   if (path === sipCalculatorPath) return "sip-calculator";
+  if (path === snapshotsPath) return "snapshots";
+  if (path === adminPath) return "admin";
   return "";
 }
 

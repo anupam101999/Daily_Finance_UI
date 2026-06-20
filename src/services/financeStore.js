@@ -12,24 +12,21 @@ export function getAdminBatches() {
   return authorizedRequest("/api/admin/batches");
 }
 
+export function getAdminLogs({ source = "app", date = "", level = "all", status = "all", search = "", page = 1, limit = 10 } = {}) {
+  const params = new URLSearchParams({ source, page: String(page), limit: String(limit) });
+  if (date) params.set("date", date);
+  if (level !== "all") params.set("level", level);
+  if (status !== "all") params.set("status", status);
+  if (search) params.set("q", search);
+  return authorizedRequest(`/api/admin/logs?${params}`);
+}
+
 export function runAdminBatch(batchId) {
   return authorizedRequest(`/api/admin/batches/${encodeURIComponent(batchId)}/run`, { method: "POST", timeoutMs: 5 * 60 * 1000 });
 }
 
 export function updateAdminBatchSchedule(batchId, cronExpression, enabled) {
   return authorizedRequest(`/api/admin/batches/${encodeURIComponent(batchId)}/schedule`, { method: "PATCH", body: JSON.stringify({ cronExpression, enabled }) });
-}
-
-export function getInsiderBackfillStatus() {
-  return authorizedRequest("/api/finance/insider-trades/backfill/status");
-}
-
-export function startInsiderBackfill(fromYear, fromMonth, toYear, toMonth) {
-  return authorizedRequest("/api/finance/insider-trades/backfill", { method: "POST", body: JSON.stringify({ fromYear, fromMonth, toYear, toMonth }) });
-}
-
-export function terminateInsiderBackfill() {
-  return authorizedRequest("/api/finance/insider-trades/backfill", { method: "DELETE" });
 }
 
 export function getAnalyticsFeature({ period = "1y", startDate = "", endDate = "" } = {}) {
@@ -127,6 +124,24 @@ export function getProfitFeature() {
   return authorizedRequest("/api/finance/profit");
 }
 
+export function getPortfolioSnapshots({ type = "all", page = 1, pageSize = 9 } = {}) {
+  const params = new URLSearchParams({ type, page: String(page), pageSize: String(pageSize) });
+  return authorizedRequest(`/api/finance/snapshots?${params.toString()}`).then((payload) => ({
+    snapshots: (payload.snapshots || []).map(normalizeSnapshot),
+    latest: (payload.latest || []).map(normalizeSnapshot),
+    type: payload.type || type,
+    page: Number(payload.page || page),
+    pageSize: Number(payload.pageSize || pageSize),
+    total: Number(payload.total || 0),
+    pageCount: Number(payload.pageCount || 1),
+  }));
+}
+
+export function updatePortfolioSnapshot(id, snapshot) {
+  return authorizedRequest(`/api/finance/snapshots/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(snapshot) })
+    .then((payload) => normalizeSnapshot(payload.snapshot));
+}
+
 export function getInsiderTradesFeature({ year, scope = "market", search = "", date = "", page = 1, pageSize = 50 } = {}) {
   const params = new URLSearchParams({ scope, search, date, page: String(page), pageSize: String(pageSize) });
   if (year) params.set("year", String(year));
@@ -201,6 +216,30 @@ function normalizeOverview(payload) {
     holdingCount: Number(payload.holdingCount || 0),
     soldCount: Number(payload.soldCount || 0),
     refreshedAt: payload.refreshedAt || "",
+  };
+}
+
+function normalizeSnapshot(snapshot) {
+  return {
+    ...snapshot,
+    currentValue: Number(snapshot.currentValue || 0),
+    investedValue: Number(snapshot.investedValue || 0),
+    totalProfit: Number(snapshot.totalProfit || 0),
+    profitPercent: Number(snapshot.profitPercent || 0),
+    realizedProfit: Number(snapshot.realizedProfit || 0),
+    unrealizedProfit: Number(snapshot.unrealizedProfit || 0),
+    totalCharges: Number(snapshot.totalCharges || 0),
+    periodProfit: Number(snapshot.periodProfit || 0),
+    periodReturnPercent: snapshot.periodReturnPercent == null ? null : Number(snapshot.periodReturnPercent),
+    niftyStartValue: snapshot.niftyStartValue == null ? null : Number(snapshot.niftyStartValue),
+    niftyEndValue: snapshot.niftyEndValue == null ? null : Number(snapshot.niftyEndValue),
+    niftyReturnPercent: snapshot.niftyReturnPercent == null ? null : Number(snapshot.niftyReturnPercent),
+    alphaPercent: snapshot.alphaPercent == null ? null : Number(snapshot.alphaPercent),
+    holdingCount: Number(snapshot.holdingCount || 0),
+    soldCount: Number(snapshot.soldCount || 0),
+    holdings: snapshot.holdings || [],
+    allocation: snapshot.allocation || [],
+    sectors: snapshot.sectors || [],
   };
 }
 
