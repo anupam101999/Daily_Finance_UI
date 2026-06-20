@@ -1494,17 +1494,6 @@ button.kpi:hover {
 .batch-schedule-editor .batch-enabled { display: flex; align-items: center; align-self: center; gap: 5px; }
 .batch-schedule-editor .batch-enabled input { width: auto; min-height: auto; }
 .batch-schedule-editor button { min-height: 34px; }
-.finance-backfill { display: grid; gap: 7px; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 10px; }
-.finance-backfill > p { margin: 0; color: var(--muted); }
-.finance-backfill > small { color: var(--muted); font-size: 0.7rem; }
-.backfill-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 150px)); gap: 8px; }
-.backfill-fields label { display: grid; gap: 4px; color: var(--muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
-.backfill-progress { overflow: hidden; height: 7px; border-radius: 99px; background: var(--panel-soft); }
-.backfill-progress i { display: block; height: 100%; border-radius: inherit; background: var(--brand); transition: width 0.25s ease; }
-.backfill-status { border-radius: 99px; background: var(--panel-soft); color: var(--muted); padding: 3px 7px; font-weight: 850; text-transform: capitalize; }
-.backfill-status.status-running, .backfill-status.status-queued { background: #e7f4f0; color: var(--brand-dark); }
-.backfill-status.status-cancelling { background: #fff1df; color: #8a520d; }
-.backfill-status.status-cancelled, .backfill-status.status-failed { background: #fff0ee; color: var(--loss); }
 .emergency-sql { border-top: 1px solid var(--line); padding-top: 8px; }
 .emergency-sql summary { color: var(--loss); cursor: pointer; font-weight: 850; }
 .emergency-sql > p { margin: 7px 0; color: var(--muted); font-size: 0.72rem; }
@@ -2158,6 +2147,36 @@ button.kpi:hover {
   padding-right: 5px;
 }
 
+.snapshot-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 9px;
+}
+
+.snapshot-search label {
+  display: grid;
+  gap: 4px;
+}
+
+.snapshot-search label span,
+.snapshot-search small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.snapshot-search input,
+.snapshot-search select {
+  min-height: 36px;
+}
+
+.snapshot-search small { margin: auto 4px; }
+
 .snapshot-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -2683,7 +2702,6 @@ textarea { min-height: 64px; }
   .batch-schedule-editor { align-items: stretch; }
   .batch-schedule-editor label:not(.batch-enabled) { flex: 1 1 120px; }
   .batch-schedule-editor input, .batch-schedule-editor select { width: 100%; }
-  .backfill-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .emergency-sql-head { align-items: stretch; flex-direction: column; }
 }
 
@@ -2691,7 +2709,6 @@ textarea { min-height: 64px; }
   .hero-actions, .kpi-grid { grid-template-columns: 1fr; }
   .insider-table article { grid-template-columns: 1fr; }
   .page-title-metrics span { padding: 6px 8px; }
-  .backfill-fields { grid-template-columns: 1fr; }
   .snapshot-latest-grid { grid-template-columns: 1fr; }
   .snapshot-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .snapshot-pager { display: grid; grid-template-columns: 1fr 1fr; }

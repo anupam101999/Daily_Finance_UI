@@ -30,7 +30,6 @@ import AdminDashboard from "./components/AdminDashboard";
 import {
   addDividend,
   addHolding,
-  backfillPortfolioSnapshots,
   deleteTransaction,
   getAnalyticsFeature,
   getFinanceOverview,
@@ -61,6 +60,7 @@ const emptySale = { sellDate: today, quantity: "", sellPrice: "", charges: "", n
 const emptyDividend = { assetId: "", dividendDate: today, amount: "", notes: "" };
 const emptyTransaction = { assetId: "", sector: "", transactionDate: today, transactionType: "buy", quantity: "", price: "", charges: "", notes: "" };
 const emptyAnalyticsRange = { startDate: "", endDate: "" };
+const emptySnapshotRange = { startDate: "", endDate: "" };
 const exchangeOptions = ["NSE", "BSE", "BOM", "MUTF_IN"];
 const analyticsPath = "/anlytics";
 const insiderTradesPath = "/insider-trades";
@@ -113,6 +113,7 @@ export default function App() {
   const [ledgerPage, setLedgerPage] = useState(1);
   const [snapshotPage, setSnapshotPage] = useState(1);
   const [snapshotType, setSnapshotType] = useState("all");
+  const [snapshotRange, setSnapshotRange] = useState(emptySnapshotRange);
   const [analyticsPeriod, setAnalyticsPeriod] = useState("1y");
   const [analyticsRange, setAnalyticsRange] = useState(emptyAnalyticsRange);
   const [addDividendMode, setAddDividendMode] = useState(false);
@@ -159,8 +160,8 @@ export default function App() {
   }, [modal, holdingPage, appliedHoldingSearch, holdingStatus, holdingSort]);
 
   useEffect(() => {
-    if (user && modal === "snapshots") loadSnapshots(snapshotPage, snapshotType);
-  }, [user, modal, snapshotPage, snapshotType]);
+    if (user && modal === "snapshots") loadSnapshots(snapshotPage, snapshotType, snapshotRange);
+  }, [user, modal, snapshotPage, snapshotType, snapshotRange]);
 
   const holdings = holdingsData?.holdings || [];
   const sortedHoldings = sortHoldings(holdings, holdingSort);
@@ -272,10 +273,10 @@ export default function App() {
     }
   }
 
-  async function loadSnapshots(page = snapshotPage, type = snapshotType) {
+  async function loadSnapshots(page = snapshotPage, type = snapshotType, range = snapshotRange) {
     setFeatureBusy(true);
     try {
-      setSnapshotData(await getPortfolioSnapshots({ page, pageSize: 9, type }));
+      setSnapshotData(await getPortfolioSnapshots({ page, pageSize: 9, type, ...range }));
       setSnapshotPage(page);
       setMessage("");
     } catch (error) {
@@ -292,20 +293,6 @@ export default function App() {
     finally { setFeatureBusy(false); }
   }
 
-  async function backfillSnapshots() {
-    setFeatureBusy(true);
-    try {
-      const result = await backfillPortfolioSnapshots();
-      await loadSnapshots(1, snapshotType);
-      const failureText = result.failed?.length ? ` ${result.failed.length} period(s) could not be valued; check the response/log for unavailable symbols.` : "";
-      setMessage(`Created ${result.created || 0} historical snapshots; ${result.skipped || 0} existing snapshots kept.${failureText}`);
-    } catch (error) {
-      setMessage(error.message);
-    } finally {
-      setFeatureBusy(false);
-    }
-  }
-
   function openSnapshots() {
     setRoutePath(snapshotsPath);
     setModal("snapshots");
@@ -313,6 +300,11 @@ export default function App() {
 
   function changeSnapshotType(type) {
     setSnapshotType(type);
+    setSnapshotPage(1);
+  }
+
+  function searchSnapshots(range) {
+    setSnapshotRange(range);
     setSnapshotPage(1);
   }
 
@@ -628,7 +620,7 @@ export default function App() {
             <span><small>Schedule</small><b>6:00 AM IST</b></span>
           </div>
         </section>
-        <PortfolioSnapshots data={snapshotData} type={snapshotType} busy={featureBusy} onType={changeSnapshotType} onPage={setSnapshotPage} onEdit={saveSnapshot} onBackfill={backfillSnapshots} />
+        <PortfolioSnapshots data={snapshotData} type={snapshotType} busy={featureBusy} onType={changeSnapshotType} onPage={setSnapshotPage} onEdit={saveSnapshot} onSearch={searchSnapshots} />
       </main>
     );
   }

@@ -9,9 +9,12 @@ const filters = [
   ["fiscal_year", "FY"],
 ];
 
-export default function PortfolioSnapshots({ data, type, busy, onType, onPage, onEdit, onBackfill }) {
+export default function PortfolioSnapshots({ data, type, busy, onType, onPage, onEdit, onSearch }) {
   const snapshots = data?.snapshots || [];
   const [editing, setEditing] = useState(null);
+  const [searchMode, setSearchMode] = useState("date");
+  const [searchValue, setSearchValue] = useState("");
+  const hasSearch = Boolean(data?.startDate && data?.endDate);
   return (
     <section className="snapshot-workspace">
       <div className="snapshot-latest-grid">
@@ -25,14 +28,31 @@ export default function PortfolioSnapshots({ data, type, busy, onType, onPage, o
           ))}
         </div>
         <span>{data?.total || 0} saved snapshot{data?.total === 1 ? "" : "s"}</span>
-        <button className="ghost" type="button" disabled={busy} onClick={onBackfill}>{busy ? "Working..." : "Backfill history"}</button>
       </div>
+
+      <form className="snapshot-search" onSubmit={(event) => { event.preventDefault(); if (searchValue) onSearch(searchRange(searchMode, searchValue)); }}>
+        <label>
+          <span>Find snapshot by</span>
+          <select value={searchMode} onChange={(event) => { setSearchMode(event.target.value); setSearchValue(""); }}>
+            <option value="date">Exact date</option>
+            <option value="month">Month</option>
+            <option value="week">Week</option>
+          </select>
+        </label>
+        <label>
+          <span>{searchMode === "date" ? "Date" : searchMode === "month" ? "Month" : "Week"}</span>
+          <input type={searchMode} value={searchValue} onChange={(event) => setSearchValue(event.target.value)} required />
+        </label>
+        <button type="submit" disabled={busy || !searchValue}>Search</button>
+        {hasSearch ? <button className="ghost" type="button" disabled={busy} onClick={() => { setSearchValue(""); onSearch({ startDate: "", endDate: "" }); }}>Clear</button> : null}
+        {hasSearch ? <small>Showing {date(data.startDate)} to {date(data.endDate)}</small> : null}
+      </form>
 
       {busy ? <div className="empty snapshot-empty">Loading portfolio snapshots...</div> : snapshots.length ? (
         <div className="snapshot-grid">
           {snapshots.map((snapshot) => <SnapshotCard key={snapshot.id} snapshot={snapshot} onEdit={() => setEditing(snapshot)} />)}
         </div>
-      ) : <div className="empty snapshot-empty">No {type === "all" ? "" : `${labelFor(type).toLowerCase()} `}snapshots yet. The 6:00 AM batch will create the first one.</div>}
+      ) : <div className="empty snapshot-empty">{hasSearch ? "No snapshots match the selected period." : `No ${type === "all" ? "" : `${labelFor(type).toLowerCase()} `}snapshots yet. The 6:00 AM batch will create the first one.`}</div>}
 
       <SnapshotPager page={data?.page || 1} pageCount={data?.pageCount || 1} onPage={onPage} />
       {editing ? <SnapshotEditor snapshot={editing} onClose={() => setEditing(null)} onSave={async (value) => { await onEdit(value); setEditing(null); }} /> : null}
@@ -125,6 +145,22 @@ function SnapshotPager({ page, pageCount, onPage }) {
 
 function labelFor(type) {
   return ({ daily: "Daily", weekly: "Weekly", monthly: "Monthly", fiscal_year: "Fiscal year" })[type] || "Snapshot";
+}
+function searchRange(mode, value) {
+  if (mode === "date") return { startDate: value, endDate: value };
+  if (mode === "month") {
+    const [year, month] = value.split("-").map(Number);
+    const end = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+    return { startDate: `${value}-01`, endDate: end };
+  }
+  const match = value.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return { startDate: "", endDate: "" };
+  const year = Number(match[1]); const week = Number(match[2]);
+  const januaryFourth = new Date(Date.UTC(year, 0, 4));
+  const monday = new Date(januaryFourth);
+  monday.setUTCDate(januaryFourth.getUTCDate() - ((januaryFourth.getUTCDay() + 6) % 7) + ((week - 1) * 7));
+  const sunday = new Date(monday); sunday.setUTCDate(monday.getUTCDate() + 6);
+  return { startDate: monday.toISOString().slice(0, 10), endDate: sunday.toISOString().slice(0, 10) };
 }
 function money(value) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(Number(value || 0)); }
 function signedMoney(value) { const amount = Number(value || 0); return `${amount >= 0 ? "+" : "-"}${money(Math.abs(amount))}`; }

@@ -125,8 +125,9 @@ export function getProfitFeature() {
   return authorizedRequest("/api/finance/profit");
 }
 
-export function getPortfolioSnapshots({ type = "all", page = 1, pageSize = 9 } = {}) {
+export function getPortfolioSnapshots({ type = "all", page = 1, pageSize = 9, startDate = "", endDate = "" } = {}) {
   const params = new URLSearchParams({ type, page: String(page), pageSize: String(pageSize) });
+  if (startDate && endDate) { params.set("startDate", startDate); params.set("endDate", endDate); }
   return authorizedRequest(`/api/finance/snapshots?${params.toString()}`).then((payload) => ({
     snapshots: (payload.snapshots || []).map(normalizeSnapshot),
     latest: (payload.latest || []).map(normalizeSnapshot),
@@ -135,16 +136,14 @@ export function getPortfolioSnapshots({ type = "all", page = 1, pageSize = 9 } =
     pageSize: Number(payload.pageSize || pageSize),
     total: Number(payload.total || 0),
     pageCount: Number(payload.pageCount || 1),
+    startDate: payload.startDate || "",
+    endDate: payload.endDate || "",
   }));
 }
 
 export function updatePortfolioSnapshot(id, snapshot) {
   return authorizedRequest(`/api/finance/snapshots/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(snapshot) })
     .then((payload) => normalizeSnapshot(payload.snapshot));
-}
-
-export function backfillPortfolioSnapshots() {
-  return authorizedRequest("/api/finance/snapshots/backfill", { method: "POST", timeoutMs: 5 * 60 * 1000 });
 }
 
 export function getInsiderTradesFeature({ year, scope = "market", search = "", date = "", page = 1, pageSize = 50 } = {}) {
