@@ -67,9 +67,10 @@ function normalizeAnalytics(payload) {
       totalProfit: Number(summary.totalProfit || 0),
       profitPercent: summary.profitPercent == null ? null : Number(summary.profitPercent),
       allTimeProfitPercent: Number(summary.allTimeProfitPercent || 0),
-      periodProfit: Number(summary.periodProfit || 0),
-      periodRealizedProfit: Number(summary.periodRealizedProfit || 0),
-      periodUnrealizedProfit: Number(summary.periodUnrealizedProfit || 0),
+      periodProfit: summary.periodProfit == null ? null : Number(summary.periodProfit),
+      periodRealizedProfit: summary.periodRealizedProfit == null ? null : Number(summary.periodRealizedProfit),
+      periodUnrealizedProfit: summary.periodUnrealizedProfit == null ? null : Number(summary.periodUnrealizedProfit),
+      periodStartProfit: summary.periodStartProfit == null ? null : Number(summary.periodStartProfit),
       periodStartValue: Number(summary.periodStartValue || 0),
       periodBuyValue: Number(summary.periodBuyValue || 0),
       periodSellValue: Number(summary.periodSellValue || 0),
@@ -140,6 +141,10 @@ export function getPortfolioSnapshots({ type = "all", page = 1, pageSize = 9 } =
 export function updatePortfolioSnapshot(id, snapshot) {
   return authorizedRequest(`/api/finance/snapshots/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(snapshot) })
     .then((payload) => normalizeSnapshot(payload.snapshot));
+}
+
+export function backfillPortfolioSnapshots() {
+  return authorizedRequest("/api/finance/snapshots/backfill", { method: "POST", timeoutMs: 5 * 60 * 1000 });
 }
 
 export function getInsiderTradesFeature({ year, scope = "market", search = "", date = "", page = 1, pageSize = 50 } = {}) {

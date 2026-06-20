@@ -30,6 +30,7 @@ import AdminDashboard from "./components/AdminDashboard";
 import {
   addDividend,
   addHolding,
+  backfillPortfolioSnapshots,
   deleteTransaction,
   getAnalyticsFeature,
   getFinanceOverview,
@@ -289,6 +290,20 @@ export default function App() {
     try { await updatePortfolioSnapshot(snapshot.id, snapshot); await loadSnapshots(snapshotPage, snapshotType); setMessage("Portfolio snapshot updated."); }
     catch (error) { setMessage(error.message); throw error; }
     finally { setFeatureBusy(false); }
+  }
+
+  async function backfillSnapshots() {
+    setFeatureBusy(true);
+    try {
+      const result = await backfillPortfolioSnapshots();
+      await loadSnapshots(1, snapshotType);
+      const failureText = result.failed?.length ? ` ${result.failed.length} period(s) could not be valued; check the response/log for unavailable symbols.` : "";
+      setMessage(`Created ${result.created || 0} historical snapshots; ${result.skipped || 0} existing snapshots kept.${failureText}`);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setFeatureBusy(false);
+    }
   }
 
   function openSnapshots() {
@@ -613,7 +628,7 @@ export default function App() {
             <span><small>Schedule</small><b>6:00 AM IST</b></span>
           </div>
         </section>
-        <PortfolioSnapshots data={snapshotData} type={snapshotType} busy={featureBusy} onType={changeSnapshotType} onPage={setSnapshotPage} onEdit={saveSnapshot} />
+        <PortfolioSnapshots data={snapshotData} type={snapshotType} busy={featureBusy} onType={changeSnapshotType} onPage={setSnapshotPage} onEdit={saveSnapshot} onBackfill={backfillSnapshots} />
       </main>
     );
   }
@@ -1035,7 +1050,7 @@ function AnalyticsView({ data, period, range, setRange, busy, onPeriod }) {
         <SummaryItem label={`${period === "custom" ? "Selected" : period.toUpperCase()} return`} value={formatPercent(summary.profitPercent)} tone={returnTone} />
         <SummaryItem label="Nifty 50 return" value={formatPercent(summary.niftyReturnPercent)} />
         <SummaryItem label="Better/worse than Nifty" value={formatPercent(summary.alphaPercent)} tone={(summary.alphaPercent || 0) >= 0 ? "gain" : "loss"} />
-        <SummaryItem label="Profit in this period" value={money(summary.periodProfit)} tone={summary.periodProfit >= 0 ? "gain" : "loss"} />
+        <SummaryItem label="Total profit change" value={summary.periodProfit == null ? "Unavailable" : money(summary.periodProfit)} tone={summary.periodProfit == null ? "" : summary.periodProfit >= 0 ? "gain" : "loss"} />
         <SummaryItem label="Largest holding" value={`${num(summary.topHoldingWeight)}%`} />
       </div>
 
@@ -1079,7 +1094,8 @@ function FlowMatrix({ summary }) {
     { label: "Money used to buy", value: money(summary.periodBuyValue), tone: "loss" },
     { label: "Money received from sells", value: money(summary.periodSellValue), tone: "gain" },
     { label: "Dividends received", value: money(summary.periodDividendValue), tone: "gain" },
-    { label: "Profit in period", value: money(summary.periodProfit), tone: summary.periodProfit >= 0 ? "gain" : "loss" },
+    { label: "Profit at period start", value: summary.periodStartProfit == null ? "Unavailable" : money(summary.periodStartProfit), tone: summary.periodStartProfit == null ? "" : summary.periodStartProfit >= 0 ? "gain" : "loss" },
+    { label: "Total profit change", value: summary.periodProfit == null ? "Unavailable" : money(summary.periodProfit), tone: summary.periodProfit == null ? "" : summary.periodProfit >= 0 ? "gain" : "loss" },
     { label: "Total return so far", value: formatPercent(summary.allTimeProfitPercent), tone: summary.allTimeProfitPercent >= 0 ? "gain" : "loss" },
   ];
   return (

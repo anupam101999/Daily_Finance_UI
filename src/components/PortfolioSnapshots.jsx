@@ -9,7 +9,7 @@ const filters = [
   ["fiscal_year", "FY"],
 ];
 
-export default function PortfolioSnapshots({ data, type, busy, onType, onPage, onEdit }) {
+export default function PortfolioSnapshots({ data, type, busy, onType, onPage, onEdit, onBackfill }) {
   const snapshots = data?.snapshots || [];
   const [editing, setEditing] = useState(null);
   return (
@@ -25,6 +25,7 @@ export default function PortfolioSnapshots({ data, type, busy, onType, onPage, o
           ))}
         </div>
         <span>{data?.total || 0} saved snapshot{data?.total === 1 ? "" : "s"}</span>
+        <button className="ghost" type="button" disabled={busy} onClick={onBackfill}>{busy ? "Working..." : "Backfill history"}</button>
       </div>
 
       {busy ? <div className="empty snapshot-empty">Loading portfolio snapshots...</div> : snapshots.length ? (
