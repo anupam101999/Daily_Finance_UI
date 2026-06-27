@@ -971,6 +971,7 @@ function Holdings({ holdings, title, sort, onSort, page, pageSize = 6, total = h
             <SortHeader label="Investment" field="name" sort={sort} onSort={onSort} defaultDirection="Asc" />
             <SortHeader label="Units" field="units" sort={sort} onSort={onSort} />
             <SortHeader label="Avg buy" field="avgbuy" sort={sort} onSort={onSort} />
+            <SortHeader label="Price now" field="price" sort={sort} onSort={onSort} />
             <SortHeader label="Cost / avg sell" field="cost" sort={sort} onSort={onSort} />
             <SortHeader label="Value" field="value" sort={sort} onSort={onSort} />
             <SortHeader label="Return / P/L" field="return" sort={sort} onSort={onSort} />
@@ -984,6 +985,7 @@ function Holdings({ holdings, title, sort, onSort, page, pageSize = 6, total = h
               </div>
               <div><small>{holding.status === "sold" ? "Sold units" : "Units held"}</small><b>{num(holding.status === "sold" ? holding.soldQuantity : holding.quantity)}</b></div>
               <div><small>Average buy price</small><b>{money(holding.averagePrice)}</b></div>
+              <div><small>Price now</small><b>{money(holding.currentPrice)}</b></div>
               <div><small>{holding.status === "sold" ? "Average sell price" : "Money invested"}</small><b>{holding.status === "sold" ? money(holding.averageSellPrice) : money(holding.investedValue)}</b></div>
               <div><small>{holding.status === "sold" ? "Money received" : "Current value"}</small><b>{holding.status === "sold" ? money(holding.sellValue) : money(holding.currentValue)}</b></div>
               <div className={holding.status === "sold" ? (holding.realizedProfit >= 0 ? "gain" : "loss") : (holding.profitLoss >= 0 ? "gain" : "loss")}><small>{holding.status === "sold" ? "Closed profit/loss" : "Open return"}</small><b>{holding.status === "sold" ? money(holding.realizedProfit) : `${num(holding.profitLossPercent)}%`}</b></div>
@@ -1415,6 +1417,7 @@ function fiscalYearLabel(startDate) {
 function sortHoldings(rows, sortKey) {
   const getters = {
     avgbuy: (row) => Number(row.averagePrice || 0),
+    price: (row) => Number(row.currentPrice || 0),
     cost: (row) => Number(row.status === "sold" ? row.averageSellPrice : row.investedValue || 0),
     date: (row) => row.sellDate || row.purchaseDate || "",
     units: (row) => Number(row.status === "sold" ? row.soldQuantity : row.quantity || 0),
