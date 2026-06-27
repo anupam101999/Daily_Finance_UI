@@ -30,6 +30,39 @@ export function getAdminLogs({ source = "app", date = "", level = "all", status 
   return authorizedRequest(`/api/admin/logs?${params}`);
 }
 
+export function getAdminQuoteAssets() {
+  return authorizedRequest("/api/admin/quote-assets");
+}
+
+export function updateAdminQuoteAsset(assetId, skipQuoteSync) {
+  return authorizedRequest(`/api/admin/quote-assets/${encodeURIComponent(assetId)}`, { method: "PATCH", body: JSON.stringify({ skipQuoteSync }) });
+}
+
+export function getAdminDatabaseTables() {
+  return authorizedRequest("/api/admin/database/tables");
+}
+
+export function getAdminDatabaseTable(table, { page = 1, pageSize = 25, search = "" } = {}) {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), search });
+  return authorizedRequest(`/api/admin/database/tables/${encodeURIComponent(table)}?${params}`);
+}
+
+export function insertAdminDatabaseRow(table, row) {
+  return authorizedRequest(`/api/admin/database/tables/${encodeURIComponent(table)}/rows`, { method: "POST", body: JSON.stringify({ row }) });
+}
+
+export function updateAdminDatabaseRow(table, key, row) {
+  return authorizedRequest(`/api/admin/database/tables/${encodeURIComponent(table)}/rows`, { method: "PATCH", body: JSON.stringify({ key, row }) });
+}
+
+export function deleteAdminDatabaseRow(table, key) {
+  return authorizedRequest(`/api/admin/database/tables/${encodeURIComponent(table)}/rows`, { method: "DELETE", body: JSON.stringify({ key }) });
+}
+
+export function runAdminDatabaseQuery(sql) {
+  return authorizedRequest("/api/admin/database/query", { method: "POST", body: JSON.stringify({ sql }) });
+}
+
 export function runAdminBatch(batchId) {
   return authorizedRequest(`/api/admin/batches/${encodeURIComponent(batchId)}/run`, { method: "POST", timeoutMs: 5 * 60 * 1000 });
 }
