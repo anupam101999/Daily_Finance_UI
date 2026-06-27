@@ -163,6 +163,10 @@ function AdminDatabase() {
   const columns = tableData.schema.columns || [];
   const visibleColumns = columns.map((column) => column.name);
   const displayColumns = visibleColumns.slice(0, 12);
+  const queryRows = queryResult?.rows || [];
+  const queryColumns = queryResult ? (queryResult.fields?.length ? queryResult.fields : Object.keys(queryRows[0] || {})) : [];
+  const activeRows = queryResult ? queryRows : tableData.rows;
+  const activeColumns = queryResult ? queryColumns.slice(0, 12) : displayColumns;
   const changePage = (page) => setFilters((current) => ({ ...current, page }));
   async function runQuery(event) {
     event.preventDefault();
@@ -204,28 +208,28 @@ function AdminDatabase() {
     <div className="admin-section-head"><div><span><Database size={17} /> Database</span><h2>Database replica</h2><p>Browse public tables, inspect data, edit rows with JSON, and run read-only SQL queries.</p></div><button className="ghost" onClick={() => { void loadTables(); void loadTable(); }} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} /> Refresh</button></div>
     {message ? <div className="notice admin-batch-message">{message}</div> : null}
     <div className="admin-db-layout">
-      <aside className="admin-table-list">{tables.map((table) => <button key={table.name} className={selected === table.name ? "active" : ""} onClick={() => { setSelected(table.name); setFilters((current) => ({ ...current, page: 1 })); }}><span>{table.name}</span><small>{table.total} rows</small></button>)}</aside>
+      <aside className="admin-table-list">{tables.map((table) => <button key={table.name} className={selected === table.name ? "active" : ""} onClick={() => { setQueryResult(null); setSelected(table.name); setFilters((current) => ({ ...current, page: 1 })); }}><span>{table.name}</span><small>{table.total} rows</small></button>)}</aside>
       <div className="admin-table-panel">
         <form className="admin-query-console" onSubmit={runQuery}>
           <label><span>Read-only SQL query</span><textarea value={sql} onChange={(event) => setSql(event.target.value)} /></label>
           <button disabled={loading}><Play size={15} /> Run query</button>
         </form>
-        {queryResult ? <div className="admin-query-result"><strong>{queryResult.rowCount ?? queryResult.rows?.length ?? 0} rows</strong><pre>{JSON.stringify(queryResult.rows || [], null, 2)}</pre></div> : null}
+        {queryResult ? <div className="admin-query-status"><strong>{queryResult.rowCount ?? queryRows.length} query rows</strong><span>Showing SQL result in the table below.</span><button className="ghost" type="button" onClick={() => setQueryResult(null)}>Back to table</button></div> : null}
         <div className="admin-db-toolbar">
           <label><span>Search table data</span><input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value, page: 1 }))} placeholder="Search JSON row text..." /></label>
           <label><span>Page size</span><select value={filters.pageSize} onChange={(event) => setFilters((current) => ({ ...current, pageSize: Number(event.target.value), page: 1 }))}>{[10,25,50,100].map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
           <button onClick={() => setEditor({ mode: "insert", key: null, text: "{\n\n}" })}><Plus size={15} /> Insert</button>
         </div>
         <div className="admin-db-scroll">
-          <div className="admin-db-grid" style={{ gridTemplateColumns: `repeat(${Math.max(displayColumns.length, 1)}, minmax(108px, 1fr)) 82px` }}>
-            {displayColumns.map((column) => <b className="admin-db-cell head" key={column}>{column}</b>)}<b className="admin-db-cell head">Actions</b>
-            {loading ? <div className="admin-db-empty">Loading records...</div> : tableData.rows.length ? tableData.rows.map((row) => <React.Fragment key={JSON.stringify(row.__rowKey)}>
-              {displayColumns.map((column) => <span className="admin-db-cell" key={`${JSON.stringify(row.__rowKey)}-${column}`} title={formatCell(row[column])}>{formatCell(row[column])}</span>)}
-              <span className="admin-db-actions"><button className="ghost icon-button" title="Edit row" onClick={() => setEditor({ mode: "update", key: row.__rowKey, text: JSON.stringify(cleanRow(row), null, 2) })}><Edit3 size={14} /></button><button className="ghost icon-button danger" title="Delete row" onClick={() => deleteRow(row)}><Trash2 size={14} /></button></span>
+          <div className="admin-db-grid" style={{ gridTemplateColumns: `repeat(${Math.max(activeColumns.length, 1)}, minmax(108px, 1fr))${queryResult ? "" : " 82px"}` }}>
+            {activeColumns.map((column) => <b className="admin-db-cell head" key={column}>{column}</b>)}{queryResult ? null : <b className="admin-db-cell head">Actions</b>}
+            {loading ? <div className="admin-db-empty">Loading records...</div> : activeRows.length ? activeRows.map((row, rowIndex) => <React.Fragment key={queryResult ? `query-${rowIndex}` : JSON.stringify(row.__rowKey)}>
+              {activeColumns.map((column) => <span className="admin-db-cell" key={`${queryResult ? rowIndex : JSON.stringify(row.__rowKey)}-${column}`} title={formatCell(row[column])}>{formatCell(row[column])}</span>)}
+              {queryResult ? null : <span className="admin-db-actions"><button className="ghost icon-button" title="Edit row" onClick={() => setEditor({ mode: "update", key: row.__rowKey, text: JSON.stringify(cleanRow(row), null, 2) })}><Edit3 size={14} /></button><button className="ghost icon-button danger" title="Delete row" onClick={() => deleteRow(row)}><Trash2 size={14} /></button></span>}
             </React.Fragment>) : <div className="admin-db-empty">No records found.</div>}
           </div>
         </div>
-        <div className="admin-log-pager"><button className="ghost" disabled={filters.page <= 1} onClick={() => changePage(filters.page - 1)}>Previous</button><span>Page {tableData.pagination.page || 1} of {tableData.pagination.totalPages || 1} ({tableData.pagination.total || 0} rows)</span><button className="ghost" disabled={filters.page >= (tableData.pagination.totalPages || 1)} onClick={() => changePage(filters.page + 1)}>Next</button></div>
+        {queryResult ? null : <div className="admin-log-pager"><button className="ghost" disabled={filters.page <= 1} onClick={() => changePage(filters.page - 1)}>Previous</button><span>Page {tableData.pagination.page || 1} of {tableData.pagination.totalPages || 1} ({tableData.pagination.total || 0} rows)</span><button className="ghost" disabled={filters.page >= (tableData.pagination.totalPages || 1)} onClick={() => changePage(filters.page + 1)}>Next</button></div>}
       </div>
     </div>
     {editor ? <div className="snapshot-edit-overlay"><div className="snapshot-edit-modal admin-json-modal">
