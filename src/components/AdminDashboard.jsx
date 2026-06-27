@@ -31,7 +31,7 @@ function AdminOverview({ onOpen }) {
     <button onClick={() => onOpen("logs")}><FileWarning /><span><small>Failure evidence</small><b>Sync and job errors</b><em>See failed symbols and provider messages retained with each run.</em></span></button>
     <button onClick={() => onOpen("settings")}><SlidersHorizontal /><span><small>Market data</small><b>Quote provider</b><em>Choose whether prices come from NSE or Screener for syncs and snapshots.</em></span></button>
     <button onClick={() => onOpen("quote-sync")}><RefreshCw /><span><small>Per-stock control</small><b>Quote exclusions</b><em>Skip any held stock during manual syncs and scheduled snapshot batches.</em></span></button>
-    <button onClick={() => onOpen("database")}><Database /><span><small>Database admin</small><b>Tables and SQL</b><em>Browse records, insert, update, delete, and run read-only queries.</em></span></button>
+    <button onClick={() => onOpen("database")}><Database /><span><small>Database admin</small><b>Tables and SQL</b><em>Browse records, insert, update, delete, and run SQL queries.</em></span></button>
     <button onClick={() => onOpen("batches")}><CalendarClock /><span><small>Automation</small><b>Schedules</b><em>Edit cron schedules, pause automation, or run any job now.</em></span></button>
   </div>;
 }
@@ -165,14 +165,21 @@ function AdminDatabase() {
   const displayColumns = visibleColumns.slice(0, 12);
   const queryRows = queryResult?.rows || [];
   const queryColumns = queryResult ? (queryResult.fields?.length ? queryResult.fields : Object.keys(queryRows[0] || {})) : [];
-  const activeRows = queryResult ? queryRows : tableData.rows;
+  const queryPageCount = Math.max(1, Math.ceil(queryRows.length / filters.pageSize));
+  const queryPage = Math.min(filters.page, queryPageCount);
+  const visibleQueryRows = queryRows.slice((queryPage - 1) * filters.pageSize, queryPage * filters.pageSize);
+  const activeRows = queryResult ? visibleQueryRows : tableData.rows;
   const activeColumns = queryResult ? queryColumns.slice(0, 12) : displayColumns;
+  const queryRowsEditable = queryResult && tableData.schema.primaryKey?.length && tableData.schema.primaryKey.every((column) => queryColumns.includes(column));
   const changePage = (page) => setFilters((current) => ({ ...current, page }));
   async function runQuery(event) {
     event.preventDefault();
     setLoading(true);
     try {
       setQueryResult(await runAdminDatabaseQuery(sql));
+      setFilters((current) => ({ ...current, page: 1 }));
+      await loadTables();
+      if (selected) await loadTable(selected, filters);
       setMessage("Query completed.");
     } catch (error) {
       setMessage(error.message);
@@ -205,31 +212,31 @@ function AdminDatabase() {
     }
   }
   return <section className="admin-db-workspace">
-    <div className="admin-section-head"><div><span><Database size={17} /> Database</span><h2>Database replica</h2><p>Browse public tables, inspect data, edit rows with JSON, and run read-only SQL queries.</p></div><button className="ghost" onClick={() => { void loadTables(); void loadTable(); }} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} /> Refresh</button></div>
+    <div className="admin-section-head"><div><span><Database size={17} /> Database</span><h2>Database replica</h2><p>Browse public tables, inspect data, edit rows with JSON, and run SQL queries.</p></div><button className="ghost" onClick={() => { void loadTables(); void loadTable(); }} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} /> Refresh</button></div>
     {message ? <div className="notice admin-batch-message">{message}</div> : null}
     <div className="admin-db-layout">
       <aside className="admin-table-list">{tables.map((table) => <button key={table.name} className={selected === table.name ? "active" : ""} onClick={() => { setQueryResult(null); setSelected(table.name); setFilters((current) => ({ ...current, page: 1 })); }}><span>{table.name}</span><small>{table.total} rows</small></button>)}</aside>
       <div className="admin-table-panel">
         <form className="admin-query-console" onSubmit={runQuery}>
-          <label><span>Read-only SQL query</span><textarea value={sql} onChange={(event) => setSql(event.target.value)} /></label>
+          <label><span>SQL query</span><textarea value={sql} onChange={(event) => setSql(event.target.value)} /></label>
           <button disabled={loading}><Play size={15} /> Run query</button>
         </form>
-        {queryResult ? <div className="admin-query-status"><strong>{queryResult.rowCount ?? queryRows.length} query rows</strong><span>Showing SQL result in the table below.</span><button className="ghost" type="button" onClick={() => setQueryResult(null)}>Back to table</button></div> : null}
+        {queryResult ? <div className="admin-query-status"><strong>{queryResult.rowCount ?? queryRows.length} query rows</strong><span>{queryRowsEditable ? "Showing editable SQL result in the table below." : "Showing SQL result in the table below."}</span><button className="ghost" type="button" onClick={() => setQueryResult(null)}>Back to table</button></div> : null}
         <div className="admin-db-toolbar">
           <label><span>Search table data</span><input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value, page: 1 }))} placeholder="Search JSON row text..." /></label>
           <label><span>Page size</span><select value={filters.pageSize} onChange={(event) => setFilters((current) => ({ ...current, pageSize: Number(event.target.value), page: 1 }))}>{[10,25,50,100].map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
           <button onClick={() => setEditor({ mode: "insert", key: null, text: "{\n\n}" })}><Plus size={15} /> Insert</button>
         </div>
         <div className="admin-db-scroll">
-          <div className="admin-db-grid" style={{ gridTemplateColumns: `repeat(${Math.max(activeColumns.length, 1)}, minmax(108px, 1fr))${queryResult ? "" : " 82px"}` }}>
-            {activeColumns.map((column) => <b className="admin-db-cell head" key={column}>{column}</b>)}{queryResult ? null : <b className="admin-db-cell head">Actions</b>}
+          <div className="admin-db-grid" style={{ gridTemplateColumns: `repeat(${Math.max(activeColumns.length, 1)}, minmax(108px, 1fr))${queryRowsEditable || !queryResult ? " 82px" : ""}` }}>
+            {activeColumns.map((column) => <b className="admin-db-cell head" key={column}>{column}</b>)}{queryRowsEditable || !queryResult ? <b className="admin-db-cell head">Actions</b> : null}
             {loading ? <div className="admin-db-empty">Loading records...</div> : activeRows.length ? activeRows.map((row, rowIndex) => <React.Fragment key={queryResult ? `query-${rowIndex}` : JSON.stringify(row.__rowKey)}>
               {activeColumns.map((column) => <span className="admin-db-cell" key={`${queryResult ? rowIndex : JSON.stringify(row.__rowKey)}-${column}`} title={formatCell(row[column])}>{formatCell(row[column])}</span>)}
-              {queryResult ? null : <span className="admin-db-actions"><button className="ghost icon-button" title="Edit row" onClick={() => setEditor({ mode: "update", key: row.__rowKey, text: JSON.stringify(cleanRow(row), null, 2) })}><Edit3 size={14} /></button><button className="ghost icon-button danger" title="Delete row" onClick={() => deleteRow(row)}><Trash2 size={14} /></button></span>}
+              {queryRowsEditable || !queryResult ? <span className="admin-db-actions"><button className="ghost icon-button" title="Edit row" onClick={() => setEditor({ mode: "update", key: queryResult ? buildKeyFromRow(row, tableData.schema.primaryKey) : row.__rowKey, text: JSON.stringify(cleanRow(row), null, 2) })}><Edit3 size={14} /></button><button className="ghost icon-button danger" title="Delete row" onClick={() => deleteRow(queryResult ? { ...row, __rowKey: buildKeyFromRow(row, tableData.schema.primaryKey) } : row)}><Trash2 size={14} /></button></span> : null}
             </React.Fragment>) : <div className="admin-db-empty">No records found.</div>}
           </div>
         </div>
-        {queryResult ? null : <div className="admin-log-pager"><button className="ghost" disabled={filters.page <= 1} onClick={() => changePage(filters.page - 1)}>Previous</button><span>Page {tableData.pagination.page || 1} of {tableData.pagination.totalPages || 1} ({tableData.pagination.total || 0} rows)</span><button className="ghost" disabled={filters.page >= (tableData.pagination.totalPages || 1)} onClick={() => changePage(filters.page + 1)}>Next</button></div>}
+        <div className="admin-log-pager"><button className="ghost" disabled={filters.page <= 1} onClick={() => changePage(filters.page - 1)}>Previous</button><span>{queryResult ? `Page ${queryPage} of ${queryPageCount} (${queryRows.length} query rows)` : `Page ${tableData.pagination.page || 1} of ${tableData.pagination.totalPages || 1} (${tableData.pagination.total || 0} rows)`}</span><button className="ghost" disabled={queryResult ? queryPage >= queryPageCount : filters.page >= (tableData.pagination.totalPages || 1)} onClick={() => changePage(filters.page + 1)}>Next</button></div>
       </div>
     </div>
     {editor ? <div className="snapshot-edit-overlay"><div className="snapshot-edit-modal admin-json-modal">
@@ -309,6 +316,7 @@ function humanEvent(value) { const known = { "api.request": "API request", "api.
 function labelStatus(value) { return value === "all" ? "All" : ({ info: "Information", warn: "Warning", error: "Error", success: "Successful", failed: "Failed", running: "Running", skipped: "Skipped" })[value] || friendlyText(value); }
 function batchMessage(log) { const source = friendlyText(log.run_source) || "Batch"; return `${source} run ${log.run_status === "success" ? "completed successfully" : labelStatus(log.run_status).toLowerCase()}${log.duration_ms ? ` in ${duration(log.duration_ms)}` : ""}.`; }
 function cleanRow(row) { const { __ctid, __rowKey, ...rest } = row || {}; return rest; }
+function buildKeyFromRow(row, primaryKey = []) { return Object.fromEntries(primaryKey.map((column) => [column, row?.[column]])); }
 function formatCell(value) {
   if (value == null || value === "") return "";
   if (typeof value === "boolean") return value ? "Yes" : "No";
