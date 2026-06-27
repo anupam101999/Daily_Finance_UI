@@ -162,6 +162,7 @@ function AdminDatabase() {
   useEffect(() => { if (selected) void loadTable(selected, filters); }, [selected, filters]);
   const columns = tableData.schema.columns || [];
   const visibleColumns = columns.map((column) => column.name);
+  const displayColumns = visibleColumns.slice(0, 12);
   const changePage = (page) => setFilters((current) => ({ ...current, page }));
   async function runQuery(event) {
     event.preventDefault();
@@ -212,10 +213,10 @@ function AdminDatabase() {
         </div>
         <div className="admin-schema-strip">{columns.map((column) => <span key={column.name} title={column.defaultValue || ""}><b>{column.name}</b><small>{column.dataType}{tableData.schema.primaryKey?.includes(column.name) ? " / pk" : ""}{column.nullable ? "" : " / required"}</small></span>)}</div>
         <div className="admin-db-scroll">
-          <div className="admin-db-grid" style={{ gridTemplateColumns: `repeat(${Math.min(Math.max(visibleColumns.length, 1), 10)}, minmax(150px, 1fr)) 104px` }}>
-            {visibleColumns.slice(0, 10).map((column) => <b className="admin-db-cell head" key={column}>{column}</b>)}<b className="admin-db-cell head">Actions</b>
+          <div className="admin-db-grid" style={{ gridTemplateColumns: `repeat(${Math.max(displayColumns.length, 1)}, minmax(108px, 1fr)) 82px` }}>
+            {displayColumns.map((column) => <b className="admin-db-cell head" key={column}>{column}</b>)}<b className="admin-db-cell head">Actions</b>
             {loading ? <div className="admin-db-empty">Loading records...</div> : tableData.rows.length ? tableData.rows.map((row) => <React.Fragment key={JSON.stringify(row.__rowKey)}>
-              {visibleColumns.slice(0, 10).map((column) => <span className="admin-db-cell" key={`${JSON.stringify(row.__rowKey)}-${column}`} title={formatCell(row[column])}>{formatCell(row[column])}</span>)}
+              {displayColumns.map((column) => <span className="admin-db-cell" key={`${JSON.stringify(row.__rowKey)}-${column}`} title={formatCell(row[column])}>{formatCell(row[column])}</span>)}
               <span className="admin-db-actions"><button className="ghost icon-button" title="Edit row" onClick={() => setEditor({ mode: "update", key: row.__rowKey, text: JSON.stringify(cleanRow(row), null, 2) })}><Edit3 size={14} /></button><button className="ghost icon-button danger" title="Delete row" onClick={() => deleteRow(row)}><Trash2 size={14} /></button></span>
             </React.Fragment>) : <div className="admin-db-empty">No records found.</div>}
           </div>
