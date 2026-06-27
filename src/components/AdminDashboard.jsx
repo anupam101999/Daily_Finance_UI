@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Activity, CalendarClock, CheckCircle2, CircleAlert, CircleX, Database, Edit3, FileWarning, Info, Play, Plus, RefreshCw, Search, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Activity, CalendarClock, CheckCircle2, CircleAlert, CircleX, Database, Edit3, FileWarning, Info, Play, Plus, RefreshCw, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import BatchOperations from "./BatchOperations";
 import {
   deleteAdminDatabaseRow,
@@ -206,12 +206,16 @@ function AdminDatabase() {
     <div className="admin-db-layout">
       <aside className="admin-table-list">{tables.map((table) => <button key={table.name} className={selected === table.name ? "active" : ""} onClick={() => { setSelected(table.name); setFilters((current) => ({ ...current, page: 1 })); }}><span>{table.name}</span><small>{table.total} rows</small></button>)}</aside>
       <div className="admin-table-panel">
+        <form className="admin-query-console" onSubmit={runQuery}>
+          <label><span>Read-only SQL query</span><textarea value={sql} onChange={(event) => setSql(event.target.value)} /></label>
+          <button disabled={loading}><Play size={15} /> Run query</button>
+        </form>
+        {queryResult ? <div className="admin-query-result"><strong>{queryResult.rowCount ?? queryResult.rows?.length ?? 0} rows</strong><pre>{JSON.stringify(queryResult.rows || [], null, 2)}</pre></div> : null}
         <div className="admin-db-toolbar">
           <label><span>Search table data</span><input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value, page: 1 }))} placeholder="Search JSON row text..." /></label>
           <label><span>Page size</span><select value={filters.pageSize} onChange={(event) => setFilters((current) => ({ ...current, pageSize: Number(event.target.value), page: 1 }))}>{[10,25,50,100].map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
           <button onClick={() => setEditor({ mode: "insert", key: null, text: "{\n\n}" })}><Plus size={15} /> Insert</button>
         </div>
-        <div className="admin-schema-strip">{columns.map((column) => <span key={column.name} title={column.defaultValue || ""}><b>{column.name}</b><small>{column.dataType}{tableData.schema.primaryKey?.includes(column.name) ? " / pk" : ""}{column.nullable ? "" : " / required"}</small></span>)}</div>
         <div className="admin-db-scroll">
           <div className="admin-db-grid" style={{ gridTemplateColumns: `repeat(${Math.max(displayColumns.length, 1)}, minmax(108px, 1fr)) 82px` }}>
             {displayColumns.map((column) => <b className="admin-db-cell head" key={column}>{column}</b>)}<b className="admin-db-cell head">Actions</b>
@@ -222,15 +226,10 @@ function AdminDatabase() {
           </div>
         </div>
         <div className="admin-log-pager"><button className="ghost" disabled={filters.page <= 1} onClick={() => changePage(filters.page - 1)}>Previous</button><span>Page {tableData.pagination.page || 1} of {tableData.pagination.totalPages || 1} ({tableData.pagination.total || 0} rows)</span><button className="ghost" disabled={filters.page >= (tableData.pagination.totalPages || 1)} onClick={() => changePage(filters.page + 1)}>Next</button></div>
-        <form className="admin-query-console" onSubmit={runQuery}>
-          <label><span>Read-only SQL query</span><textarea value={sql} onChange={(event) => setSql(event.target.value)} /></label>
-          <button disabled={loading}><Play size={15} /> Run query</button>
-        </form>
-        {queryResult ? <div className="admin-query-result"><strong>{queryResult.rowCount ?? queryResult.rows?.length ?? 0} rows</strong><pre>{JSON.stringify(queryResult.rows || [], null, 2)}</pre></div> : null}
       </div>
     </div>
     {editor ? <div className="snapshot-edit-overlay"><div className="snapshot-edit-modal admin-json-modal">
-      <header><div><small>{selected}</small><h2>{editor.mode === "insert" ? "Insert record" : "Update record"}</h2></div><button className="ghost" onClick={() => setEditor(null)}>Close</button></header>
+      <header><div><small>{selected}</small><h2>{editor.mode === "insert" ? "Insert record" : "Update record"}</h2></div><button className="icon-button" type="button" aria-label="Close" onClick={() => setEditor(null)}><X size={18} /></button></header>
       <label><span>Record JSON</span><textarea value={editor.text} onChange={(event) => setEditor((current) => ({ ...current, text: event.target.value }))} /></label>
       <footer><button className="ghost" onClick={() => setEditor(null)}>Cancel</button><button onClick={saveEditor}>{editor.mode === "insert" ? "Insert" : "Update"}</button></footer>
     </div></div> : null}
