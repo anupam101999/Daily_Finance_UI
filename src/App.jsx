@@ -27,6 +27,7 @@ import { InsiderTradesPage } from "./components/MarketDetailPages";
 import { ConfirmModal, FormModal, FullViewModal } from "./components/Modals";
 import PortfolioSnapshots from "./components/PortfolioSnapshots";
 import AdminDashboard from "./components/AdminDashboard";
+import { ScreenerLink } from "./components/ScreenerLink";
 import {
   addDividend,
   addHolding,
@@ -969,18 +970,18 @@ function Holdings({ holdings, title, sort, onSort, page, pageSize = 6, total = h
         <div className="holding-stack">
           <div className="holding holding-header">
             <SortHeader label="Investment" field="name" sort={sort} onSort={onSort} defaultDirection="Asc" />
-            <span>Units</span>
-            <span>Avg buy</span>
-            <span>Cost / avg sell</span>
+            <SortHeader label="Units" field="units" sort={sort} onSort={onSort} />
+            <SortHeader label="Avg buy" field="avgbuy" sort={sort} onSort={onSort} />
+            <SortHeader label="Cost / avg sell" field="cost" sort={sort} onSort={onSort} />
             <SortHeader label="Value" field="value" sort={sort} onSort={onSort} />
             <SortHeader label="Return / P/L" field="return" sort={sort} onSort={onSort} />
-            <span>{allowSell ? "Actions" : "Sell date"}</span>
+            {allowSell ? <span>Actions</span> : <SortHeader label="Sell date" field="date" sort={sort} onSort={onSort} />}
           </div>
           {holdings.map((holding) => (
             <article key={holding.id} className={holding.status === "sold" ? "holding sold" : "holding"}>
               <div className="asset-cell">
                 <i>{holding.symbol.slice(0, 2)}</i>
-                <span><strong>{holding.stockName}</strong><em>{holding.symbol}:{holding.exchange}</em></span>
+                <span><strong><ScreenerLink symbol={holding.symbol} company={holding.stockName} exchange={holding.exchange}>{holding.stockName}</ScreenerLink></strong><em>{holding.symbol}:{holding.exchange}</em></span>
               </div>
               <div><small>{holding.status === "sold" ? "Sold units" : "Units held"}</small><b>{num(holding.status === "sold" ? holding.soldQuantity : holding.quantity)}</b></div>
               <div><small>Average buy price</small><b>{money(holding.averagePrice)}</b></div>
@@ -1142,7 +1143,7 @@ function AllocationPie({ rows }) {
         {rows.map((row, index) => (
           <span key={row.id || row.label}>
             <i style={{ background: colors[index % colors.length] }} />
-            <b>{row.symbol || row.label}</b>
+            <b><ScreenerLink symbol={row.symbol} company={row.label} exchange={row.exchange}>{row.symbol || row.label}</ScreenerLink></b>
             <em>{num(row.weight)}%</em>
           </span>
         ))}
@@ -1209,7 +1210,7 @@ function SectorHoldings({ sector, sort, onSort }) {
       </div>
       {holdings.map((holding) => (
         <div key={holding.id}>
-          <span><b>{holding.symbol}</b><em>{holding.label}</em></span>
+          <span><b><ScreenerLink symbol={holding.symbol} company={holding.label} exchange={holding.exchange}>{holding.symbol}</ScreenerLink></b><em>{holding.label}</em></span>
           <span>{money(holding.value)}</span>
           <span>{money(holding.investedValue)}</span>
           <span className={holding.profitLoss >= 0 ? "gain" : "loss"}>{num(holding.profitLossPercent)}%</span>
@@ -1291,7 +1292,7 @@ function Ledger({ data, sort, onSort, page, onPage, onEdit, onDelete }) {
         {(data.rows || []).map((row) => (
           <div key={row.id}>
             <span>{row.transactionDate}</span>
-            <b>{row.assetName || row.assetId}</b>
+            <b><ScreenerLink symbol={row.symbol} company={row.assetName} exchange={row.exchange}>{row.assetName || row.assetId}</ScreenerLink></b>
             <em>{row.transactionType}</em>
             <span>{num(row.quantity)}</span>
             <strong>{money(row.price)}</strong>
@@ -1414,6 +1415,10 @@ function fiscalYearLabel(startDate) {
 
 function sortHoldings(rows, sortKey) {
   const getters = {
+    avgbuy: (row) => Number(row.averagePrice || 0),
+    cost: (row) => Number(row.status === "sold" ? row.averageSellPrice : row.investedValue || 0),
+    date: (row) => row.sellDate || row.purchaseDate || "",
+    units: (row) => Number(row.status === "sold" ? row.soldQuantity : row.quantity || 0),
     value: (row) => Number(row.status === "sold" ? row.sellValue : row.currentValue || 0),
     return: (row) => holdingReturnPercent(row),
     profit: (row) => Number(row.status === "sold" ? row.realizedProfit : row.profitLoss || 0),

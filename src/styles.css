@@ -1572,7 +1572,9 @@ button.kpi:hover {
 .insider-table article strong, .insider-table article small { display: block; }
 .insider-table article a { color: var(--brand-dark); text-decoration: none; }
 .insider-table article a:hover { text-decoration: underline; }
-.screener-company-link, .insider-table article small a { display: inline-flex; align-items: center; gap: 4px; }
+.screener-company-link, .insider-table article small a { display: inline-flex; align-items: center; gap: 4px; color: inherit; text-decoration: none; min-width: 0; }
+.screener-company-link:hover { color: var(--brand-dark); text-decoration: underline; }
+.screener-company-link svg { flex: 0 0 auto; }
 .insider-table article small, .insider-table article time { margin-top: 3px; color: var(--muted); font-size: 0.72rem; }
 .insider-value b, .insider-value small { display: block; text-align: right; }
 .insider-value small { white-space: nowrap; }

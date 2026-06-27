@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Edit3, Layers3, TrendingDown, TrendingUp, X } from "lucide-react";
+import { ScreenerLink } from "./ScreenerLink";
 
 const filters = [
   ["all", "All"],
@@ -106,7 +107,7 @@ function SnapshotCard({ snapshot, onEdit }) {
           <div className="snapshot-holdings">
             {(snapshot.holdings || []).length ? snapshot.holdings.map((holding) => (
               <div key={`${snapshot.id}-${holding.id || holding.symbol}`}>
-                <span><b>{holding.symbol}</b><small>{holding.stockName}</small></span>
+                <span><b><ScreenerLink symbol={holding.symbol} company={holding.stockName} exchange={holding.exchange}>{holding.symbol}</ScreenerLink></b><small>{holding.stockName}</small></span>
                 <span><b>{number(holding.quantity)}</b><small>Units</small></span>
                 <span><b>{money(holding.currentValue)}</b><small>Value</small></span>
                 <span><b className={Number(holding.profitLoss) >= 0 ? "gain" : "loss"}>{signedMoney(holding.profitLoss)}</b><small>P/L</small></span>

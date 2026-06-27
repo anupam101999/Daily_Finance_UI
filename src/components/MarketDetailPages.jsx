@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, ExternalLink, RefreshCw, Search } from "lucide-react";
 import { getInsiderTradesFeature } from "../services/financeStore";
+import { ScreenerLink } from "./ScreenerLink";
 
 export function InsiderTradesPage({ onBack }) {
   const [scope, setScope] = useState("market");
@@ -39,7 +40,7 @@ export function InsiderTradesPage({ onBack }) {
         {(result.rows || []).map((row) => (
           <article key={row.id}>
             <span>
-              <strong><a className="screener-company-link" href={screenerUrl(row.symbol, row.company)} target="_blank" rel="noreferrer" title={`Open ${row.company || row.symbol} on Screener`}>{row.symbol || row.company}<ExternalLink size={12} /></a></strong>
+              <strong><ScreenerLink symbol={row.symbol} company={row.company}>{row.symbol || row.company}</ScreenerLink></strong>
               <small>{row.company}</small>
             </span>
             <span><strong>{row.person || "Insider"}</strong><small>{row.category}{row.source ? ` · ${row.source}` : ""}</small></span>
@@ -74,4 +75,3 @@ function number(value) { return Number(value || 0).toLocaleString("en-IN", { max
 function compactMoney(value) { const amount = Number(value || 0); const absolute = Math.abs(amount); if (absolute >= 10_000_000) return `₹${trim(amount / 10_000_000)} Cr`; if (absolute >= 100_000) return `₹${trim(amount / 100_000)} Lakh`; if (absolute >= 1_000) return `₹${trim(amount / 1_000)}K`; return `₹${number(amount)}`; }
 function trim(value) { return Number(value.toFixed(2)).toLocaleString("en-IN", { maximumFractionDigits: 2 }); }
 function impactPercent(value) { const percent = Number(value || 0); return `${percent < 0.01 && percent > 0 ? "<0.01" : percent.toLocaleString("en-IN", { maximumFractionDigits: 2 })}%`; }
-function screenerUrl(symbol, company) { const ticker = String(symbol || "").trim().replace(/^BSE:/i, ""); return ticker ? `https://www.screener.in/company/${encodeURIComponent(ticker)}/` : `https://www.screener.in/company/?q=${encodeURIComponent(company || "")}`; }
