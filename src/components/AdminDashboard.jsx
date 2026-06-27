@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Activity, CalendarClock, CheckCircle2, CircleAlert, CircleX, FileWarning, Info, RefreshCw, Search, ServerCog } from "lucide-react";
+import { Activity, CalendarClock, CheckCircle2, CircleAlert, CircleX, FileWarning, Info, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import BatchOperations from "./BatchOperations";
-import { getAdminLogs } from "../services/financeStore";
+import { getAdminLogs, getAdminSettings, updateAdminSettings } from "../services/financeStore";
 
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
 export default function AdminDashboard() {
   const [tab, setTab] = useState("overview");
   return <section className="admin-workspace">
-    <div className="admin-tabs">{[["overview","Overview"],["logs","Logs"],["batches","Batch runs"]].map(([id,label]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>{label}</button>)}</div>
-    {tab === "overview" ? <AdminOverview onOpen={setTab} /> : tab === "logs" ? <AdminLogs /> : <BatchOperations />}
+    <div className="admin-tabs">{[["overview","Overview"],["settings","Settings"],["logs","Logs"],["batches","Batch runs"]].map(([id,label]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>{label}</button>)}</div>
+    {tab === "overview" ? <AdminOverview onOpen={setTab} /> : tab === "settings" ? <AdminSettings /> : tab === "logs" ? <AdminLogs /> : <BatchOperations />}
   </section>;
 }
 
@@ -17,9 +17,44 @@ function AdminOverview({ onOpen }) {
   return <div className="admin-overview-grid">
     <button onClick={() => onOpen("logs")}><Activity /><span><small>Application observability</small><b>API logs</b><em>Inspect requests, warnings, failures, latency, and request IDs.</em></span></button>
     <button onClick={() => onOpen("logs")}><FileWarning /><span><small>Failure evidence</small><b>Sync and job errors</b><em>See failed symbols and provider messages retained with each run.</em></span></button>
+    <button onClick={() => onOpen("settings")}><SlidersHorizontal /><span><small>Market data</small><b>Quote provider</b><em>Choose whether prices come from NSE or Screener for syncs and snapshots.</em></span></button>
     <button onClick={() => onOpen("batches")}><CalendarClock /><span><small>Automation</small><b>Schedules</b><em>Edit cron schedules, pause automation, or run any job now.</em></span></button>
-    <button onClick={() => onOpen("batches")}><ServerCog /><span><small>Data lifecycle</small><b>3-day retention</b><em>Application logs and completed run history clear automatically.</em></span></button>
   </div>;
+}
+
+function AdminSettings() {
+  const [settings, setSettings] = useState({ financeQuoteProvider: "nse", quoteProviders: [] });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState("");
+  const [message, setMessage] = useState("");
+  async function load() {
+    setLoading(true);
+    try { setSettings(await getAdminSettings()); setMessage(""); }
+    catch (error) { setMessage(error.message); }
+    finally { setLoading(false); }
+  }
+  async function saveProvider(provider) {
+    setBusy(provider); setMessage("");
+    try { setSettings(await updateAdminSettings({ financeQuoteProvider: provider })); setMessage(`Quote provider changed to ${provider.toUpperCase()}. Run Finance quote refresh to update stored prices now.`); }
+    catch (error) { setMessage(error.message); }
+    finally { setBusy(""); }
+  }
+  useEffect(() => { void load(); }, []);
+  const providers = settings.quoteProviders?.length ? settings.quoteProviders : [{ id: "nse", label: "NSE" }, { id: "screener", label: "Screener" }];
+  return <section className="admin-settings-workspace">
+    <div className="admin-section-head"><div><span><SlidersHorizontal size={17} /> Market data</span><h2>Quote provider</h2><p>The selected source is used for manual syncs, scheduled quote refreshes, and snapshot captures.</p></div><button className="ghost" onClick={load} disabled={loading}><RefreshCw size={15} className={loading ? "spin" : ""} /> Refresh</button></div>
+    {message ? <div className="notice admin-batch-message">{message}</div> : null}
+    <article className="admin-setting-card">
+      <div><small>Active source</small><strong>{settings.financeQuoteProvider === "screener" ? "Screener" : "NSE"}</strong><p>NSE is tried first in NSE mode; if NSE blocks the request, the sync falls back to Screener so portfolio views and snapshots still get a price.</p></div>
+      <div className="quote-provider-toggle" role="group" aria-label="Quote provider">
+        {providers.map((provider) => (
+          <button key={provider.id} type="button" className={settings.financeQuoteProvider === provider.id ? "active" : ""} disabled={Boolean(busy) || loading} onClick={() => saveProvider(provider.id)}>
+            {busy === provider.id ? "Saving..." : provider.label}
+          </button>
+        ))}
+      </div>
+    </article>
+  </section>;
 }
 
 function AdminLogs() {

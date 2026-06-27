@@ -12,6 +12,15 @@ export function getAdminBatches() {
   return authorizedRequest("/api/admin/batches");
 }
 
+export function getAdminSettings() {
+  return authorizedRequest("/api/admin/settings").then((payload) => payload.settings || {});
+}
+
+export function updateAdminSettings(settings) {
+  return authorizedRequest("/api/admin/settings", { method: "PATCH", body: JSON.stringify(settings) })
+    .then((payload) => payload.settings || {});
+}
+
 export function getAdminLogs({ source = "app", date = "", level = "all", status = "all", search = "", page = 1, limit = 10 } = {}) {
   const params = new URLSearchParams({ source, page: String(page), limit: String(limit) });
   if (date) params.set("date", date);
