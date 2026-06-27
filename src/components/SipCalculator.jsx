@@ -87,5 +87,3 @@ function calculateProjection(input) {
 function positive(value) { const parsed = Number(value); return Number.isFinite(parsed) ? Math.max(0, parsed) : 0; }
 function wholeYears(value) { return Math.max(1, Math.min(50, Math.round(positive(value) || 1))); }
 function money(value) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value || 0)); }
-
-export const sipCalculatorUtils = { calculateProjection };

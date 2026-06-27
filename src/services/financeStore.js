@@ -170,17 +170,6 @@ export function addHolding(holding) {
   });
 }
 
-export function updateHolding(id, holding) {
-  return authorizedRequest(`/api/finance/holdings/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(holding),
-  });
-}
-
-export function deleteHolding(id) {
-  return authorizedRequest(`/api/finance/holdings/${id}`, { method: "DELETE" });
-}
-
 export function sellHolding(id, sale) {
   return authorizedRequest(`/api/finance/holdings/${id}/sell`, {
     method: "POST",

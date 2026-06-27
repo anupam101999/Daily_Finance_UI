@@ -656,7 +656,6 @@ export default function App() {
         </div>
         <div className="hero-actions">
           {user.isAdmin ? <button className="ghost" onClick={() => openMarketPage(adminPath, "admin")}><ServerCog size={17} /> Admin</button> : null}
-          {/* {user.isAdmin ? <button className="ghost" onClick={() => setModal("batches")}><ServerCog size={17} /> Batch Operations</button> : null} */}
           <button className="ghost" onClick={openSipCalculator}><Calculator size={17} /> SIP Calculator</button>
           <button className="ghost" onClick={() => openFeature("analytics")}><LineChart size={17} /> Analytics</button>
           <button className="ghost" onClick={openSnapshots}><Camera size={17} /> Snapshots</button>
