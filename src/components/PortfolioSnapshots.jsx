@@ -92,9 +92,9 @@ function SnapshotCard({ snapshot, onEdit }) {
         <span><small>Unrealized</small><b>{money(snapshot.unrealizedProfit)}</b></span>
         <span><small>Charges</small><b>{money(snapshot.totalCharges)}</b></span>
         <span><small>Period return</small><b>{optionalPercent(snapshot.periodReturnPercent)}</b></span>
-        <span><small>Nifty return</small><b>{optionalPercent(snapshot.niftyReturnPercent)}</b></span>
+        {/* <span><small>Nifty return</small><b>{optionalPercent(snapshot.niftyReturnPercent)}</b></span> */}
         <span><small>Nifty level</small><b>{snapshot.niftyEndValue == null ? "N/A" : number(snapshot.niftyEndValue)}</b></span>
-        <span><small>Alpha</small><b className={Number(snapshot.alphaPercent) >= 0 ? "gain" : "loss"}>{optionalPercent(snapshot.alphaPercent)}</b></span>
+        {/* <span><small>Alpha</small><b className={Number(snapshot.alphaPercent) >= 0 ? "gain" : "loss"}>{optionalPercent(snapshot.alphaPercent)}</b></span> */}
       </div>
       <div className="snapshot-meta">
         <span><Layers3 size={14} /> {snapshot.holdingCount} holdings</span>
