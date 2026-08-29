@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, CalendarClock, CheckCircle2, CircleAlert, CircleX, Database, Edit3, FileWarning, Info, Play, Plus, RefreshCw, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import BatchOperations from "./BatchOperations";
 import {
@@ -193,7 +193,9 @@ function AdminDatabase() {
   const [message, setMessage] = useState("");
   const [editor, setEditor] = useState(null);
   const [sql, setSql] = useState("select * from fin_asset limit 20");
+  const [sqlCursor, setSqlCursor] = useState(sql.length);
   const [queryResult, setQueryResult] = useState(null);
+  const sqlInputRef = useRef(null);
   async function loadTables() {
     try {
       const data = await getAdminDatabaseTables();
@@ -229,7 +231,19 @@ function AdminDatabase() {
   const activeRows = queryResult ? visibleQueryRows : tableData.rows;
   const activeColumns = queryResult ? queryColumns.slice(0, 12) : displayColumns;
   const queryRowsEditable = queryResult && tableData.schema.primaryKey?.length && tableData.schema.primaryKey.every((column) => queryColumns.includes(column));
+  const sqlToken = currentSqlToken(sql, sqlCursor);
+  const sqlSuggestions = buildSqlSuggestions(tables, columns, selected, sqlToken.text);
   const changePage = (page) => setFilters((current) => ({ ...current, page }));
+  function insertSqlSuggestion(value) {
+    const nextSql = `${sql.slice(0, sqlToken.start)}${value}${sql.slice(sqlToken.end)}`;
+    const nextCursor = sqlToken.start + value.length;
+    setSql(nextSql);
+    setSqlCursor(nextCursor);
+    window.setTimeout(() => {
+      sqlInputRef.current?.focus();
+      sqlInputRef.current?.setSelectionRange(nextCursor, nextCursor);
+    }, 0);
+  }
   async function runQuery(event) {
     event.preventDefault();
     setLoading(true);
@@ -276,7 +290,19 @@ function AdminDatabase() {
       <aside className="admin-table-list">{tables.map((table) => <button key={table.name} className={selected === table.name ? "active" : ""} onClick={() => { setQueryResult(null); setSelected(table.name); setFilters((current) => ({ ...current, page: 1 })); }}><span>{table.name}</span><small>{table.total} rows</small></button>)}</aside>
       <div className="admin-table-panel">
         <form className="admin-query-console" onSubmit={runQuery}>
-          <label><span>SQL query</span><textarea value={sql} onChange={(event) => setSql(event.target.value)} /></label>
+          <label>
+            <span>SQL query</span>
+            <textarea
+              ref={sqlInputRef}
+              value={sql}
+              spellCheck="false"
+              onClick={(event) => setSqlCursor(event.currentTarget.selectionStart)}
+              onKeyUp={(event) => setSqlCursor(event.currentTarget.selectionStart)}
+              onSelect={(event) => setSqlCursor(event.currentTarget.selectionStart)}
+              onChange={(event) => { setSql(event.target.value); setSqlCursor(event.target.selectionStart); }}
+            />
+            <SqlSuggestions suggestions={sqlSuggestions} onInsert={insertSqlSuggestion} />
+          </label>
           <button disabled={loading}><Play size={15} /> Run query</button>
         </form>
         {queryResult ? <div className="admin-query-status"><strong>{queryResult.rowCount ?? queryRows.length} query rows</strong><span>{queryRowsEditable ? "Showing editable SQL result in the table below." : "Showing SQL result in the table below."}</span><button className="ghost" type="button" onClick={() => setQueryResult(null)}>Back to table</button></div> : null}
@@ -373,6 +399,24 @@ function friendlyText(value) { return String(value || "").replaceAll("_", " ").r
 function humanEvent(value) { const known = { "api.request": "API request", "api.exception": "Request failed", "finance.quote_sync_partial": "Some market quotes failed", "batch.partial_failure": "Batch completed with warnings", "batch.failed": "Batch run failed", "finance-quotes": "Finance quote refresh", "portfolio-snapshot-daily": "Daily portfolio snapshot", "portfolio-snapshot-weekly": "Weekly portfolio snapshot", "portfolio-snapshot-monthly": "Monthly portfolio snapshot", "portfolio-snapshot-fiscal-year": "Fiscal-year portfolio snapshot" }; return known[value] || friendlyText(value).replaceAll(".", " "); }
 function labelStatus(value) { return value === "all" ? "All" : ({ info: "Information", warn: "Warning", error: "Error", success: "Successful", failed: "Failed", running: "Running", skipped: "Skipped" })[value] || friendlyText(value); }
 function batchMessage(log) { const source = friendlyText(log.run_source) || "Batch"; return `${source} run ${log.run_status === "success" ? "completed successfully" : labelStatus(log.run_status).toLowerCase()}${log.duration_ms ? ` in ${duration(log.duration_ms)}` : ""}.`; }
+function SqlSuggestions({ suggestions, onInsert }) {
+  if (!suggestions.length) return null;
+  return <div className="sql-suggestion-strip" aria-label="SQL suggestions">{suggestions.map((item) => <button type="button" key={`${item.type}-${item.value}`} onClick={() => onInsert(item.value)} title={item.detail}><small>{item.type}</small><span>{item.value}</span></button>)}</div>;
+}
+function currentSqlToken(sql, cursor) {
+  const safeCursor = Math.max(0, Math.min(Number(cursor || 0), sql.length));
+  let start = safeCursor;
+  while (start > 0 && /[A-Za-z0-9_]/.test(sql[start - 1])) start -= 1;
+  let end = safeCursor;
+  while (end < sql.length && /[A-Za-z0-9_]/.test(sql[end])) end += 1;
+  return { start, end, text: sql.slice(start, end).toLowerCase() };
+}
+function buildSqlSuggestions(tables, columns, selectedTable, token) {
+  const matches = (value) => !token || String(value || "").toLowerCase().includes(token);
+  const tableItems = (tables || []).filter((table) => matches(table.name)).slice(0, 8).map((table) => ({ type: "table", value: table.name, detail: `${table.total || 0} rows` }));
+  const columnItems = (columns || []).filter((column) => matches(column.name)).slice(0, 10).map((column) => ({ type: "column", value: column.name, detail: `${selectedTable}.${column.name} ${column.dataType || ""}`.trim() }));
+  return [...tableItems, ...columnItems].slice(0, 14);
+}
 function cleanRow(row) { const { __ctid, __rowKey, ...rest } = row || {}; return rest; }
 function buildKeyFromRow(row, primaryKey = []) { return Object.fromEntries(primaryKey.map((column) => [column, row?.[column]])); }
 function formatCell(value) {
