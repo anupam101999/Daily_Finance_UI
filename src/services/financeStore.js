@@ -159,6 +159,14 @@ function normalizeAnalytics(payload) {
       fees: Number(row.fees || 0),
       totalProfit: Number(row.totalProfit || 0),
     })),
+    investmentProfitTrend: (payload.investmentProfitTrend || []).map((point) => ({
+      date: point.date || "",
+      portfolioValue: Number(point.portfolioValue || 0),
+      totalProfit: Number(point.totalProfit || 0),
+      realizedProfit: Number(point.realizedProfit || 0),
+      unrealizedProfit: Number(point.unrealizedProfit || 0),
+    })),
+    defaultStartDate: payload.defaultStartDate || payload.periodStart || "",
     refreshedAt: payload.refreshedAt || "",
   };
 }

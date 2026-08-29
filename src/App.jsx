@@ -216,7 +216,14 @@ export default function App() {
     setFeatureBusy(true);
     try {
       if (nextModal === "investments") setHoldingPage(1);
-      if (nextModal === "analytics") setAnalyticsData(await getAnalyticsFeature({ period: analyticsPeriod, ...analyticsRange }));
+      if (nextModal === "analytics") {
+        const nextAnalytics = await getAnalyticsFeature({ period: analyticsPeriod, ...analyticsRange });
+        setAnalyticsData(nextAnalytics);
+        setAnalyticsRange({
+          startDate: nextAnalytics.periodStart || analyticsRange.startDate || "",
+          endDate: nextAnalytics.periodEnd || analyticsRange.endDate || "",
+        });
+      }
       if (nextModal === "profit") setProfitData(await getProfitFeature());
       if (nextModal === "ledger") await loadLedger(1, appliedLedgerSearch);
       setMessage("");
@@ -263,9 +270,13 @@ export default function App() {
   async function loadAnalytics(period = analyticsPeriod, range = analyticsRange) {
     setFeatureBusy(true);
     try {
-      setAnalyticsData(await getAnalyticsFeature({ period, ...range }));
+      const nextAnalytics = await getAnalyticsFeature({ period, ...range });
+      setAnalyticsData(nextAnalytics);
       setAnalyticsPeriod(period);
-      setAnalyticsRange(range);
+      setAnalyticsRange({
+        startDate: nextAnalytics.periodStart || range.startDate || "",
+        endDate: nextAnalytics.periodEnd || range.endDate || "",
+      });
       setMessage("");
     } catch (error) {
       setMessage(error.message);
@@ -1030,8 +1041,8 @@ function AnalyticsView({ data, period, range, setRange, busy, onPeriod }) {
           ))}
         </div>
         <div className="date-range-control">
-          <input type="date" value={range.startDate} onChange={(event) => setRange({ ...range, startDate: event.target.value })} />
-          <input type="date" value={range.endDate} onChange={(event) => setRange({ ...range, endDate: event.target.value })} />
+          <input type="date" value={range.startDate} min={data.defaultStartDate || undefined} onChange={(event) => setRange({ ...range, startDate: event.target.value })} />
+          <input type="date" value={range.endDate} min={range.startDate || data.defaultStartDate || undefined} onChange={(event) => setRange({ ...range, endDate: event.target.value })} />
           <button type="button" disabled={busy || !customReady} onClick={() => onPeriod("custom", range)}>Apply</button>
         </div>
         <div className={benchmark.unavailable ? "market-status" : "market-status good-status"}>
@@ -1049,6 +1060,9 @@ function AnalyticsView({ data, period, range, setRange, busy, onPeriod }) {
       </div>
 
       <div className="analytics-grid">
+        <Panel title="Investment profit graph" detail={`${data.periodStart || "Start"} to ${data.periodEnd || "Today"}`}>
+          <InvestmentProfitChart points={data.investmentProfitTrend || []} />
+        </Panel>
         <Panel title="Your return vs Nifty 50" detail={`Comparison from ${data.periodStart || "period start"}`}>
           <AlphaBars bars={data.performance?.bars || []} />
         </Panel>
@@ -1080,6 +1094,69 @@ function AnalyticsView({ data, period, range, setRange, busy, onPeriod }) {
       </FormModal>
     ) : null}
     </>
+  );
+}
+
+function InvestmentProfitChart({ points }) {
+  const cleanPoints = points.filter((point) => point.date).sort((left, right) => left.date.localeCompare(right.date));
+  if (cleanPoints.length < 2) return <div className="empty compact-empty">Profit graph will appear after at least two saved portfolio snapshots.</div>;
+  const width = 680;
+  const height = 320;
+  const pad = { top: 24, right: 24, bottom: 36, left: 72 };
+  const plotWidth = width - pad.left - pad.right;
+  const plotHeight = height - pad.top - pad.bottom;
+  const times = cleanPoints.map((point) => new Date(`${point.date}T00:00:00`).getTime());
+  const minTime = Math.min(...times);
+  const maxTime = Math.max(...times);
+  const values = cleanPoints.flatMap((point) => [point.portfolioValue, point.totalProfit]);
+  const rawMin = Math.min(0, ...values);
+  const rawMax = Math.max(1, ...values);
+  const padding = Math.max(1, (rawMax - rawMin) * 0.08);
+  const minValue = rawMin < 0 ? rawMin - padding : 0;
+  const maxValue = rawMax + padding;
+  const xFor = (date) => {
+    const time = new Date(`${date}T00:00:00`).getTime();
+    return pad.left + (maxTime === minTime ? plotWidth : ((time - minTime) / (maxTime - minTime)) * plotWidth);
+  };
+  const yFor = (value) => pad.top + ((maxValue - Number(value || 0)) / (maxValue - minValue)) * plotHeight;
+  const zeroY = yFor(0);
+  const linePath = (key) => cleanPoints.map((point, index) => `${index ? "L" : "M"} ${xFor(point.date).toFixed(2)} ${yFor(point[key]).toFixed(2)}`).join(" ");
+  const areaPath = `M ${xFor(cleanPoints[0].date).toFixed(2)} ${zeroY.toFixed(2)} ${cleanPoints.map((point) => `L ${xFor(point.date).toFixed(2)} ${yFor(point.portfolioValue).toFixed(2)}`).join(" ")} L ${xFor(cleanPoints.at(-1).date).toFixed(2)} ${zeroY.toFixed(2)} Z`;
+  const gridLines = Array.from({ length: 5 }, (_, index) => minValue + ((maxValue - minValue) / 4) * index).reverse();
+  const xLabels = pickChartLabels(cleanPoints);
+  return (
+    <div className="investment-chart-wrap">
+      <div className="investment-chart-legend">
+        <span><i className="portfolio-key" />Portfolio</span>
+        <span><i className="profit-key" />Profit</span>
+      </div>
+      <svg className="investment-profit-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Investment profit chart">
+        <rect x="0" y="0" width={width} height={height} rx="8" />
+        {gridLines.map((value) => (
+          <g key={value}>
+            <line x1={pad.left} x2={width - pad.right} y1={yFor(value)} y2={yFor(value)} />
+            <text x={pad.left - 12} y={yFor(value) + 4} textAnchor="end">{compactMoney(value)}</text>
+          </g>
+        ))}
+        <line className="axis-line" x1={pad.left} x2={width - pad.right} y1={zeroY} y2={zeroY} />
+        {xLabels.map((point) => (
+          <text key={point.date} className="x-label" x={xFor(point.date)} y={height - 12} textAnchor="middle">{shortDate(point.date)}</text>
+        ))}
+        <path className="portfolio-area" d={areaPath} />
+        <path className="portfolio-line" d={linePath("portfolioValue")} />
+        <path className="profit-line" d={linePath("totalProfit")} />
+        {cleanPoints.map((point) => (
+          <g key={point.date}>
+            <circle className="portfolio-point" cx={xFor(point.date)} cy={yFor(point.portfolioValue)} r="3.4"><title>{`${shortDate(point.date)} Portfolio ${money(point.portfolioValue)}`}</title></circle>
+            <circle className="profit-point" cx={xFor(point.date)} cy={yFor(point.totalProfit)} r="3.4"><title>{`${shortDate(point.date)} Profit ${money(point.totalProfit)} | Realised ${money(point.realizedProfit)} | Unrealised ${money(point.unrealizedProfit)}`}</title></circle>
+          </g>
+        ))}
+      </svg>
+      <div className="investment-chart-summary">
+        <span><small>Realised</small><b className={(cleanPoints.at(-1)?.realizedProfit || 0) >= 0 ? "gain" : "loss"}>{money(cleanPoints.at(-1)?.realizedProfit)}</b></span>
+        <span><small>Unrealised</small><b className={(cleanPoints.at(-1)?.unrealizedProfit || 0) >= 0 ? "gain" : "loss"}>{money(cleanPoints.at(-1)?.unrealizedProfit)}</b></span>
+      </div>
+    </div>
   );
 }
 
@@ -1400,12 +1477,30 @@ function money(value, currency = "INR") {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: currency || "INR", maximumFractionDigits: 2 }).format(Number(value || 0));
 }
 
+function compactMoney(value) {
+  return new Intl.NumberFormat("en-IN", { notation: "compact", maximumFractionDigits: 1 }).format(Number(value || 0));
+}
+
 function num(value) {
   return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(Number(value || 0));
 }
 
 function formatPercent(value) {
   return value == null || !Number.isFinite(Number(value)) ? "N/A" : `${num(value)}%`;
+}
+
+function shortDate(value) {
+  if (!value) return "";
+  const [year, month, day] = String(value).slice(0, 10).split("-");
+  return day && month ? `${day}/${month}` : value;
+}
+
+function pickChartLabels(points) {
+  if (points.length <= 4) return points;
+  const labelIndexes = new Set([0, points.length - 1]);
+  const step = Math.max(1, Math.floor((points.length - 1) / 3));
+  for (let index = step; index < points.length - 1; index += step) labelIndexes.add(index);
+  return points.filter((_, index) => labelIndexes.has(index)).slice(0, 5);
 }
 
 function fiscalYearLabel(startDate) {
