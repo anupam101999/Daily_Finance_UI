@@ -1476,12 +1476,6 @@ function shortDate(value) {
   return day && month ? `${day}/${month}` : value;
 }
 
-function fiscalYearLabel(startDate) {
-  const startYear = Number(String(startDate || "").slice(0, 4));
-  if (!startYear) return "Current year";
-  return `${startYear}-${String(startYear + 1).slice(-2)}`;
-}
-
 function sortHoldings(rows, sortKey) {
   const getters = {
     avgbuy: (row) => Number(row.averagePrice || 0),

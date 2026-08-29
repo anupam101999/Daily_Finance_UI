@@ -34,8 +34,9 @@ export function getAdminQuoteAssets() {
   return authorizedRequest("/api/admin/quote-assets");
 }
 
-export function updateAdminQuoteAsset(assetId, skipQuoteSync) {
-  return authorizedRequest(`/api/admin/quote-assets/${encodeURIComponent(assetId)}`, { method: "PATCH", body: JSON.stringify({ skipQuoteSync }) });
+export function updateAdminQuoteAsset(assetId, asset) {
+  const body = typeof asset === "boolean" ? { skipQuoteSync: asset } : asset;
+  return authorizedRequest(`/api/admin/quote-assets/${encodeURIComponent(assetId)}`, { method: "PATCH", body: JSON.stringify(body) });
 }
 
 export function getAdminDatabaseTables() {

@@ -77,6 +77,7 @@ function AdminQuoteSync() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const [editing, setEditing] = useState(null);
   async function load() {
     setLoading(true);
     try {
@@ -102,6 +103,20 @@ function AdminQuoteSync() {
       setBusy("");
     }
   }
+  async function saveAsset(asset) {
+    setBusy(asset.id);
+    setMessage("");
+    try {
+      const data = await updateAdminQuoteAsset(asset.id, asset);
+      setAssets((current) => current.map((item) => item.id === asset.id ? { ...item, ...data.asset } : item));
+      setEditing(null);
+      setMessage(`${data.asset.name || data.asset.symbol} mapping updated.`);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy("");
+    }
+  }
   useEffect(() => { void load(); }, []);
   const filtered = assets.filter((asset) => [asset.name, asset.symbol, asset.exchange, asset.userName].join(" ").toLowerCase().includes(search.toLowerCase()));
   const skipped = assets.filter((asset) => asset.skipQuoteSync).length;
@@ -120,10 +135,53 @@ function AdminQuoteSync() {
         <span>{formatCell(asset.quantity)}</span>
         <span>{asset.lastPrice == null ? "Not synced" : `Rs ${Number(asset.lastPrice).toLocaleString("en-IN")}`}<small>{dateTime(asset.lastPriceAt)}</small></span>
         <span><i className={`admin-pill ${asset.skipQuoteSync ? "warn" : "success"}`}>{asset.skipQuoteSync ? "Skipped" : "Included"}</i></span>
-        <span><button className={asset.skipQuoteSync ? "ghost" : ""} disabled={busy === asset.id} onClick={() => toggle(asset)}>{busy === asset.id ? "Saving..." : asset.skipQuoteSync ? "Include" : "Skip"}</button></span>
+        <span className="admin-quote-actions">
+          <button className="ghost icon-button" type="button" aria-label={`Edit ${asset.name}`} onClick={() => setEditing(asset)}><Edit3 size={15} /></button>
+          <button className={asset.skipQuoteSync ? "ghost" : ""} disabled={busy === asset.id} onClick={() => toggle(asset)}>{busy === asset.id ? "Saving..." : asset.skipQuoteSync ? "Include" : "Skip"}</button>
+        </span>
       </div>) : <div className="empty">No stocks match this search.</div>}
     </div>
+    {editing ? <QuoteAssetEditor asset={editing} busy={busy === editing.id} onClose={() => setEditing(null)} onSave={saveAsset} /> : null}
   </section>;
+}
+
+function QuoteAssetEditor({ asset, busy, onClose, onSave }) {
+  const [form, setForm] = useState({ ...asset, lastPrice: asset.lastPrice ?? "" });
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  function submit(event) {
+    event.preventDefault();
+    onSave({
+      id: asset.id,
+      name: form.name,
+      symbol: form.symbol,
+      exchange: form.exchange,
+      sector: form.sector,
+      lastPrice: form.lastPrice,
+      skipQuoteSync: form.skipQuoteSync,
+    });
+  }
+  return (
+    <div className="snapshot-edit-overlay" role="dialog" aria-modal="true">
+      <form className="snapshot-edit-modal admin-quote-edit-modal" onSubmit={submit}>
+        <header>
+          <div><span>Stock mapping</span><h2>Edit quote source details</h2></div>
+          <button className="ghost icon-button" type="button" onClick={onClose} aria-label="Close editor"><X size={18} /></button>
+        </header>
+        <div className="snapshot-edit-grid">
+          <label><span>Name</span><input value={form.name || ""} onChange={(event) => update("name", event.target.value)} required /></label>
+          <label><span>Symbol</span><input value={form.symbol || ""} onChange={(event) => update("symbol", event.target.value.toUpperCase())} required /></label>
+          <label><span>Exchange</span><input value={form.exchange || ""} onChange={(event) => update("exchange", event.target.value.toUpperCase())} required /></label>
+          <label><span>Sector</span><input value={form.sector || ""} onChange={(event) => update("sector", event.target.value)} /></label>
+          <label><span>Last price</span><input type="number" min="0" step="any" value={form.lastPrice} onChange={(event) => update("lastPrice", event.target.value)} /></label>
+          <label><span>Status</span><select value={form.skipQuoteSync ? "skip" : "include"} onChange={(event) => update("skipQuoteSync", event.target.value === "skip")}><option value="include">Included</option><option value="skip">Skipped</option></select></label>
+        </div>
+        <footer>
+          <button className="ghost" type="button" onClick={onClose}>Cancel</button>
+          <button disabled={busy}>{busy ? "Saving..." : "Save mapping"}</button>
+        </footer>
+      </form>
+    </div>
+  );
 }
 
 function AdminDatabase() {
