@@ -115,7 +115,7 @@ export default function App() {
   const [snapshotPage, setSnapshotPage] = useState(1);
   const [snapshotType, setSnapshotType] = useState("all");
   const [snapshotRange, setSnapshotRange] = useState(emptySnapshotRange);
-  const [analyticsPeriod, setAnalyticsPeriod] = useState("1y");
+  const [analyticsPeriod, setAnalyticsPeriod] = useState("");
   const [analyticsRange, setAnalyticsRange] = useState(emptyAnalyticsRange);
   const [addDividendMode, setAddDividendMode] = useState(false);
   const [holdingSort, setHoldingSort] = useState("valueDesc");
@@ -680,7 +680,7 @@ export default function App() {
         <Kpi icon={WalletCards} label="Current value" value={money(overview.currentValue)} detail={`${overview.holdingCount} open holdings`} onOpen={() => setModal("portfolio")} />
         <Kpi icon={Coins} label="Still invested" value={money(overview.investedValue)} detail="Cost left in open holdings" onOpen={() => openFeature("investments")} />
         <Kpi icon={overview.totalProfit >= 0 ? TrendingUp : TrendingDown} label="Total profit/loss" value={money(overview.totalProfit)} detail="Actual profit after charges" tone={overview.totalProfit >= 0 ? "good" : "bad"} onOpen={() => openFeature("profit")} />
-        <FiscalYearKpi overview={overview} />
+        <FiscalYearKpi overview={overview} onOpen={() => setModal("fiscal-profit")} />
       </section>
 
       <DashboardOverview overview={overview} onHealthDetails={() => setShowHealthBreakdown(true)} />
@@ -812,6 +812,12 @@ export default function App() {
           <HealthBreakdown overview={overview} />
         </FormModal>
       ) : null}
+
+      {modal === "fiscal-profit" ? (
+        <FormModal title="This FY profit" detail={fiscalYearLabel(overview.fiscalYearStart)} onClose={() => setModal("")}>
+          <FiscalProfitView overview={overview} />
+        </FormModal>
+      ) : null}
     </main>
   );
 }
@@ -833,11 +839,11 @@ function Kpi({ icon: Icon, label, value, detail, tone = "", onOpen }) {
   );
 }
 
-function FiscalYearKpi({ overview }) {
+function FiscalYearKpi({ overview, onOpen }) {
   const tone = overview.thisFyProfit >= 0 ? "good" : "bad";
   const Icon = overview.thisFyProfit >= 0 ? TrendingUp : TrendingDown;
   return (
-    <div className={`kpi static-kpi fiscal-kpi ${tone}`}>
+    <button className={`kpi fiscal-kpi ${tone}`} type="button" onClick={onOpen}>
       <div className="fiscal-kpi-head">
         <Icon size={20} />
         <span>This FY</span>
@@ -847,7 +853,7 @@ function FiscalYearKpi({ overview }) {
         <div><small>Profit</small><strong>{money(overview.thisFyProfit)}</strong></div>
         <div><small>Return</small><strong>{formatPercent(overview.thisFyReturn)}</strong></div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -1029,6 +1035,7 @@ function AnalyticsView({ data, period, range, setRange, busy, onPeriod }) {
   const sectorRows = sortSectorRows(data.sectors || [], sectorSort);
   const activeSector = sectorRows.find((row) => row.label === selectedSector) || sectorRows[0];
   const customReady = range.startDate && range.endDate && range.startDate <= range.endDate;
+  const returnLabel = period === "custom" ? "Selected return" : period ? `${period.toUpperCase()} return` : "Return";
   return (
     <>
     <section className="analytics-screen compact-analytics">
@@ -1052,7 +1059,7 @@ function AnalyticsView({ data, period, range, setRange, busy, onPeriod }) {
       </div>
 
       <div className="analytics-kpis">
-        <SummaryItem label={`${period === "custom" ? "Selected" : period.toUpperCase()} return`} value={formatPercent(summary.profitPercent)} tone={returnTone} />
+        <SummaryItem label={returnLabel} value={formatPercent(summary.profitPercent)} tone={returnTone} />
         <SummaryItem label="Nifty 50 return" value={formatPercent(summary.niftyReturnPercent)} />
         <SummaryItem label="Better/worse than Nifty" value={formatPercent(summary.alphaPercent)} tone={(summary.alphaPercent || 0) >= 0 ? "gain" : "loss"} />
         <SummaryItem label="Total profit change" value={summary.periodProfit == null ? "Unavailable" : money(summary.periodProfit)} tone={summary.periodProfit == null ? "" : summary.periodProfit >= 0 ? "gain" : "loss"} />
@@ -1123,7 +1130,9 @@ function InvestmentProfitChart({ points }) {
   const linePath = (key) => cleanPoints.map((point, index) => `${index ? "L" : "M"} ${xFor(point.date).toFixed(2)} ${yFor(point[key]).toFixed(2)}`).join(" ");
   const areaPath = `M ${xFor(cleanPoints[0].date).toFixed(2)} ${zeroY.toFixed(2)} ${cleanPoints.map((point) => `L ${xFor(point.date).toFixed(2)} ${yFor(point.portfolioValue).toFixed(2)}`).join(" ")} L ${xFor(cleanPoints.at(-1).date).toFixed(2)} ${zeroY.toFixed(2)} Z`;
   const gridLines = Array.from({ length: 5 }, (_, index) => minValue + ((maxValue - minValue) / 4) * index).reverse();
-  const xLabels = pickChartLabels(cleanPoints);
+  const firstPoint = cleanPoints[0];
+  const lastPoint = cleanPoints.at(-1);
+  const xLabels = firstPoint.date === lastPoint.date ? [firstPoint] : [firstPoint, lastPoint];
   return (
     <div className="investment-chart-wrap">
       <div className="investment-chart-legend">
@@ -1148,14 +1157,10 @@ function InvestmentProfitChart({ points }) {
         {cleanPoints.map((point) => (
           <g key={point.date}>
             <circle className="portfolio-point" cx={xFor(point.date)} cy={yFor(point.portfolioValue)} r="3.4"><title>{`${shortDate(point.date)} Portfolio ${money(point.portfolioValue)}`}</title></circle>
-            <circle className="profit-point" cx={xFor(point.date)} cy={yFor(point.totalProfit)} r="3.4"><title>{`${shortDate(point.date)} Profit ${money(point.totalProfit)} | Realised ${money(point.realizedProfit)} | Unrealised ${money(point.unrealizedProfit)}`}</title></circle>
+            <circle className="profit-point" cx={xFor(point.date)} cy={yFor(point.totalProfit)} r="3.4"><title>{`${shortDate(point.date)} Profit ${money(point.totalProfit)}`}</title></circle>
           </g>
         ))}
       </svg>
-      <div className="investment-chart-summary">
-        <span><small>Realised</small><b className={(cleanPoints.at(-1)?.realizedProfit || 0) >= 0 ? "gain" : "loss"}>{money(cleanPoints.at(-1)?.realizedProfit)}</b></span>
-        <span><small>Unrealised</small><b className={(cleanPoints.at(-1)?.unrealizedProfit || 0) >= 0 ? "gain" : "loss"}>{money(cleanPoints.at(-1)?.unrealizedProfit)}</b></span>
-      </div>
     </div>
   );
 }
@@ -1354,6 +1359,18 @@ function ProfitView({ data }) {
   );
 }
 
+function FiscalProfitView({ overview }) {
+  const profitTone = overview.thisFyProfit >= 0 ? "gain" : "loss";
+  return (
+    <div className="drill-summary">
+      <SummaryItem label="FY profit" value={money(overview.thisFyProfit)} tone={profitTone} />
+      <SummaryItem label="FY return" value={formatPercent(overview.thisFyReturn)} tone={profitTone} />
+      <SummaryItem label="Realised profit" value={money(overview.thisFyRealizedProfit)} tone={overview.thisFyRealizedProfit >= 0 ? "gain" : "loss"} />
+      <SummaryItem label="Unrealised profit" value={money(overview.thisFyUnrealizedProfit)} tone={overview.thisFyUnrealizedProfit >= 0 ? "gain" : "loss"} />
+    </div>
+  );
+}
+
 function Ledger({ data, sort, onSort, page, onPage, onEdit, onDelete }) {
   const pageCount = Math.max(1, Math.ceil((data.total || 0) / (data.pageSize || 12)));
   return (
@@ -1493,14 +1510,6 @@ function shortDate(value) {
   if (!value) return "";
   const [year, month, day] = String(value).slice(0, 10).split("-");
   return day && month ? `${day}/${month}` : value;
-}
-
-function pickChartLabels(points) {
-  if (points.length <= 4) return points;
-  const labelIndexes = new Set([0, points.length - 1]);
-  const step = Math.max(1, Math.floor((points.length - 1) / 3));
-  for (let index = step; index < points.length - 1; index += step) labelIndexes.add(index);
-  return points.filter((_, index) => labelIndexes.has(index)).slice(0, 5);
 }
 
 function fiscalYearLabel(startDate) {
@@ -1644,6 +1653,8 @@ function emptyOverview() {
     profitPercent: 0,
     thisFyProfit: 0,
     thisFyReturn: 0,
+    thisFyRealizedProfit: 0,
+    thisFyUnrealizedProfit: 0,
     fiscalYearStart: "",
     holdingCount: 0,
     soldCount: 0,

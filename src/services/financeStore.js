@@ -255,6 +255,8 @@ function normalizeOverview(payload) {
     unrealizedProfit: Number(payload.unrealizedProfit || 0),
     thisFyProfit: Number(payload.thisFyProfit || 0),
     thisFyReturn: Number(payload.thisFyReturn || 0),
+    thisFyRealizedProfit: Number(payload.thisFyRealizedProfit || 0),
+    thisFyUnrealizedProfit: Number(payload.thisFyUnrealizedProfit || 0),
     fiscalYearStart: payload.fiscalYearStart || "",
     holdingCount: Number(payload.holdingCount || 0),
     soldCount: Number(payload.soldCount || 0),

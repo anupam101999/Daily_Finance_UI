@@ -1126,7 +1126,8 @@ button.kpi:hover {
 
 .investment-profit-chart {
   width: 100%;
-  min-height: 260px;
+  height: clamp(210px, 34vw, 340px);
+  max-height: 42vh;
   overflow: visible;
 }
 
@@ -1179,34 +1180,23 @@ button.kpi:hover {
 .portfolio-point { fill: #ff9800; }
 .profit-point { fill: #8bc53f; }
 
-.investment-chart-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
+@media (max-width: 640px) {
+  .investment-chart-legend {
+    justify-content: flex-start;
+    gap: 14px;
+    font-size: 0.78rem;
+  }
 
-.investment-chart-summary span {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-soft);
-  padding: 9px 11px;
-}
+  .investment-profit-chart {
+    height: 220px;
+    max-height: none;
+  }
 
-.investment-chart-summary small {
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
+  .investment-profit-chart text {
+    font-size: 11px;
+  }
 
-.investment-chart-summary b {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  .investment-profit-chart .x-label { font-size: 10px; }
 }
 
 .alpha-bars {
