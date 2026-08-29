@@ -680,7 +680,6 @@ export default function App() {
         <Kpi icon={WalletCards} label="Current value" value={money(overview.currentValue)} detail={`${overview.holdingCount} open holdings`} onOpen={() => setModal("portfolio")} />
         <Kpi icon={Coins} label="Still invested" value={money(overview.investedValue)} detail="Cost left in open holdings" onOpen={() => openFeature("investments")} />
         <Kpi icon={overview.totalProfit >= 0 ? TrendingUp : TrendingDown} label="Total profit/loss" value={money(overview.totalProfit)} detail="Actual profit after charges" tone={overview.totalProfit >= 0 ? "good" : "bad"} onOpen={() => openFeature("profit")} />
-        <FiscalYearKpi overview={overview} onOpen={() => setModal("fiscal-profit")} />
       </section>
 
       <DashboardOverview overview={overview} onHealthDetails={() => setShowHealthBreakdown(true)} />
@@ -813,11 +812,6 @@ export default function App() {
         </FormModal>
       ) : null}
 
-      {modal === "fiscal-profit" ? (
-        <FormModal title="This FY profit" detail={fiscalYearLabel(overview.fiscalYearStart)} onClose={() => setModal("")}>
-          <FiscalProfitView overview={overview} />
-        </FormModal>
-      ) : null}
     </main>
   );
 }
@@ -835,24 +829,6 @@ function Kpi({ icon: Icon, label, value, detail, tone = "", onOpen }) {
   return (
     <button className={`kpi ${tone}`} type="button" onClick={onOpen}>
       {content}
-    </button>
-  );
-}
-
-function FiscalYearKpi({ overview, onOpen }) {
-  const tone = overview.thisFyProfit >= 0 ? "good" : "bad";
-  const Icon = overview.thisFyProfit >= 0 ? TrendingUp : TrendingDown;
-  return (
-    <button className={`kpi fiscal-kpi ${tone}`} type="button" onClick={onOpen}>
-      <div className="fiscal-kpi-head">
-        <Icon size={20} />
-        <span>This FY</span>
-        <small>{fiscalYearLabel(overview.fiscalYearStart)}</small>
-      </div>
-      <div className="fiscal-kpi-values">
-        <div><small>Profit</small><strong>{money(overview.thisFyProfit)}</strong></div>
-        <div><small>Return</small><strong>{formatPercent(overview.thisFyReturn)}</strong></div>
-      </div>
     </button>
   );
 }
@@ -1359,18 +1335,6 @@ function ProfitView({ data }) {
   );
 }
 
-function FiscalProfitView({ overview }) {
-  const profitTone = overview.thisFyProfit >= 0 ? "gain" : "loss";
-  return (
-    <div className="drill-summary">
-      <SummaryItem label="FY profit" value={money(overview.thisFyProfit)} tone={profitTone} />
-      <SummaryItem label="FY return" value={formatPercent(overview.thisFyReturn)} tone={profitTone} />
-      <SummaryItem label="Realised profit" value={money(overview.thisFyRealizedProfit)} tone={overview.thisFyRealizedProfit >= 0 ? "gain" : "loss"} />
-      <SummaryItem label="Unrealised profit" value={money(overview.thisFyUnrealizedProfit)} tone={overview.thisFyUnrealizedProfit >= 0 ? "gain" : "loss"} />
-    </div>
-  );
-}
-
 function Ledger({ data, sort, onSort, page, onPage, onEdit, onDelete }) {
   const pageCount = Math.max(1, Math.ceil((data.total || 0) / (data.pageSize || 12)));
   return (
@@ -1651,11 +1615,6 @@ function emptyOverview() {
     realizedProfit: 0,
     totalProfit: 0,
     profitPercent: 0,
-    thisFyProfit: 0,
-    thisFyReturn: 0,
-    thisFyRealizedProfit: 0,
-    thisFyUnrealizedProfit: 0,
-    fiscalYearStart: "",
     holdingCount: 0,
     soldCount: 0,
   };
